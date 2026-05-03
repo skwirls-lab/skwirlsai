@@ -333,18 +333,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       content: text,
     );
 
-    // Auto-title on first message
-    final messages = await convRepo.getMessages(activeConv.uuid);
-    if (messages.length == 1) {
-      await convRepo.autoTitle(activeConv.uuid);
-    }
-
     // Refresh messages
     ref.invalidate(messagesForConversationProvider(activeConv.uuid));
     ref.invalidate(conversationsForGemProvider(activeConv.gemId));
 
     // Generate response
     await _generateResponse(activeConv.uuid);
+
+    // Auto-title after first full exchange (user + assistant)
+    final updatedMessages = await convRepo.getMessages(activeConv.uuid);
+    if (updatedMessages.length == 2) {
+      _autoTitleWithLLM(activeConv.uuid, text);
+    }
   }
 
   Future<void> _generateResponse(String conversationId) async {
@@ -463,6 +463,59 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (identical(0, 0.0)) return 'Web';
     } catch (_) {}
     return 'Desktop';
+  }
+
+  Future<void> _autoTitleWithLLM(String conversationId, String userMessage) async {
+    final inferenceService = ref.read(inferenceServiceProvider);
+    if (!inferenceService.isModelLoaded) {
+      // Fallback: truncate user message
+      final convRepo = ref.read(conversationRepositoryProvider);
+      await convRepo.autoTitle(conversationId);
+      _refreshConversationList();
+      return;
+    }
+
+    try {
+      final titleBuf = StringBuffer();
+      await for (final token in inferenceService.generateStream(
+        messages: [
+          ChatMessage(
+            role: 'user',
+            content: userMessage,
+          ),
+        ],
+        systemPrompt:
+            'Generate a very short title (3-6 words, no quotes, no punctuation at the end) '
+            'that summarizes this conversation topic. Respond with ONLY the title, nothing else.',
+      )) {
+        titleBuf.write(token);
+        // Safety: stop if it gets too long
+        if (titleBuf.length > 60) break;
+      }
+
+      var title = titleBuf.toString().trim();
+      // Clean up: remove quotes, trailing punctuation
+      title = title.replaceAll(RegExp(r"""^["']+|["']+$"""), '');
+      title = title.replaceAll(RegExp(r'[.!]+$'), '');
+      if (title.length > 50) title = '${title.substring(0, 50)}...';
+      if (title.isEmpty) title = 'New Chat';
+
+      final convRepo = ref.read(conversationRepositoryProvider);
+      await convRepo.updateTitle(conversationId, title);
+      _refreshConversationList();
+    } catch (e) {
+      // Fallback on error
+      final convRepo = ref.read(conversationRepositoryProvider);
+      await convRepo.autoTitle(conversationId);
+      _refreshConversationList();
+    }
+  }
+
+  void _refreshConversationList() {
+    final activeConv = ref.read(activeConversationProvider);
+    if (activeConv != null) {
+      ref.invalidate(conversationsForGemProvider(activeConv.gemId));
+    }
   }
 
   void _stopGeneration() {

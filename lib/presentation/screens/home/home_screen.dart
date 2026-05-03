@@ -252,12 +252,17 @@ class _DesktopHome extends ConsumerWidget {
           // Conversation list
           Container(
             width: 260,
-            color: AppColors.background,
+            decoration: const BoxDecoration(
+              color: AppColors.background,
+              border: Border(
+                right: BorderSide(color: AppColors.divider),
+              ),
+            ),
             child: Column(
               children: [
                 // Header with gem name and new chat button
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
                   child: Row(
                     children: [
                       Expanded(
@@ -277,6 +282,11 @@ class _DesktopHome extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                // Search bar
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  child: _ConversationSearchBar(),
                 ),
                 // Conversation list
                 Expanded(
@@ -308,6 +318,52 @@ class _DesktopHome extends ConsumerWidget {
   }
 }
 
+// Search query state
+final _searchQueryProvider = StateProvider<String>((ref) => '');
+
+class _ConversationSearchBar extends ConsumerWidget {
+  const _ConversationSearchBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      height: 34,
+      child: TextField(
+        style: AppTextStyles.bodySmall,
+        decoration: InputDecoration(
+          hintText: 'Search chats...',
+          hintStyle: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textTertiary,
+          ),
+          prefixIcon: const Icon(Icons.search_rounded,
+              size: 16, color: AppColors.textTertiary),
+          prefixIconConstraints: const BoxConstraints(minWidth: 36),
+          filled: true,
+          fillColor: AppColors.surfaceLight,
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: ref.watch(_searchQueryProvider).isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded,
+                      size: 14, color: AppColors.textTertiary),
+                  onPressed: () {
+                    ref.read(_searchQueryProvider.notifier).state = '';
+                  },
+                  padding: EdgeInsets.zero,
+                )
+              : null,
+        ),
+        onChanged: (value) {
+          ref.read(_searchQueryProvider.notifier).state = value;
+        },
+      ),
+    );
+  }
+}
+
 class _ChatListView extends ConsumerWidget {
   final void Function(dynamic conversation) onConversationTap;
 
@@ -317,10 +373,46 @@ class _ChatListView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeGem = ref.watch(activeGemProvider);
     final activeConv = ref.watch(activeConversationProvider);
+    final searchQuery = ref.watch(_searchQueryProvider);
 
     if (activeGem == null) {
       return const Center(
         child: Text('Select a Gem to start', style: AppTextStyles.body),
+      );
+    }
+
+    // If searching, use search results; otherwise use gem conversations
+    if (searchQuery.isNotEmpty) {
+      final searchAsync = ref.watch(searchResultsProvider(searchQuery));
+      return searchAsync.when(
+        loading: () => const Center(
+            child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )),
+        error: (e, _) => Center(child: Text('Error: $e')),
+        data: (results) {
+          if (results.isEmpty) {
+            return Center(
+              child: Text('No results for "$searchQuery"',
+                  style: AppTextStyles.bodySmall),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            itemCount: results.length,
+            itemBuilder: (_, index) {
+              final conv = results[index];
+              return ConversationTile(
+                conversation: conv,
+                isSelected: activeConv?.uuid == conv.uuid,
+                onTap: () => onConversationTap(conv),
+                onLongPress: () =>
+                    _showConversationOptions(context, ref, conv),
+              );
+            },
+          );
+        },
       );
     }
 
@@ -368,7 +460,7 @@ class _ChatListView extends ConsumerWidget {
         final sorted = [...pinned, ...unpinned];
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
           itemCount: sorted.length,
           itemBuilder: (_, index) {
             final conv = sorted[index];
@@ -376,10 +468,98 @@ class _ChatListView extends ConsumerWidget {
               conversation: conv,
               isSelected: activeConv?.uuid == conv.uuid,
               onTap: () => onConversationTap(conv),
+              onLongPress: () =>
+                  _showConversationOptions(context, ref, conv),
             );
           },
         );
       },
+    );
+  }
+
+  void _showConversationOptions(
+      BuildContext context, WidgetRef ref, dynamic conv) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                conv.isPinned
+                    ? Icons.push_pin_outlined
+                    : Icons.push_pin_rounded,
+                size: 20,
+              ),
+              title: Text(conv.isPinned ? 'Unpin' : 'Pin'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await ref
+                    .read(conversationRepositoryProvider)
+                    .togglePin(conv.uuid);
+                ref.invalidate(
+                    conversationsForGemProvider(conv.gemId));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.archive_outlined, size: 20),
+              title: const Text('Archive'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await ref
+                    .read(conversationRepositoryProvider)
+                    .archiveConversation(conv.uuid);
+                if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
+                  ref.read(activeConversationProvider.notifier).state = null;
+                }
+                ref.invalidate(
+                    conversationsForGemProvider(conv.gemId));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded,
+                  size: 20, color: AppColors.error),
+              title: const Text('Delete',
+                  style: TextStyle(color: AppColors.error)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dlgCtx) => AlertDialog(
+                    title: const Text('Delete Conversation?'),
+                    content: const Text(
+                        'This will permanently delete this conversation and all its messages.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dlgCtx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(dlgCtx, true),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await ref
+                      .read(conversationRepositoryProvider)
+                      .deleteConversation(conv.uuid);
+                  if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
+                    ref.read(activeConversationProvider.notifier).state = null;
+                  }
+                  ref.invalidate(
+                      conversationsForGemProvider(conv.gemId));
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

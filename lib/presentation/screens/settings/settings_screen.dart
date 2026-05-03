@@ -1,12 +1,146 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/conversation_provider.dart';
+import '../../providers/database_provider.dart';
+import '../../providers/gem_provider.dart';
 import '../../providers/model_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../models/model_management_screen.dart';
+
+Future<void> _exportChatHistory(BuildContext context, WidgetRef ref) async {
+  try {
+    final convRepo = ref.read(conversationRepositoryProvider);
+    final gemRepo = ref.read(gemRepositoryProvider);
+    final gems = await gemRepo.getAllGems();
+
+    final export = <String, dynamic>{
+      'appVersion': AppConstants.appVersion,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'gems': [],
+    };
+
+    for (final gem in gems) {
+      final conversations = await convRepo.getConversationsForGem(gem.uuid);
+      final convList = <Map<String, dynamic>>[];
+
+      for (final conv in conversations) {
+        final messages = await convRepo.getMessages(conv.uuid);
+        convList.add({
+          'title': conv.title,
+          'createdAt': conv.createdAt.toIso8601String(),
+          'updatedAt': conv.updatedAt.toIso8601String(),
+          'messages': messages
+              .map((m) => {
+                    'role': m.role.name,
+                    'content': m.content,
+                    'timestamp': m.timestamp.toIso8601String(),
+                  })
+              .toList(),
+        });
+      }
+
+      (export['gems'] as List).add({
+        'name': gem.name,
+        'systemPrompt': gem.systemPrompt,
+        'conversations': convList,
+      });
+    }
+
+    final jsonStr = const JsonEncoder.withIndent('  ').convert(export);
+
+    // Ask user where to save
+    final outputPath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Export Chat History',
+      fileName:
+          'skwirlsai_export_${DateTime.now().millisecondsSinceEpoch}.json',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (outputPath == null) return;
+
+    await File(outputPath).writeAsString(jsonStr);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chat history exported successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
+}
+
+Future<void> _clearAllData(BuildContext context, WidgetRef ref) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Clear All Data?'),
+      content: const Text(
+          'This will permanently delete ALL conversations, messages, and custom Gems. '
+          'This action cannot be undone.\n\n'
+          'Default Gems will be restored.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          child: const Text('Delete Everything'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) return;
+
+  try {
+    final isar = ref.read(isarProvider);
+    await isar.writeTxn(() async {
+      await isar.clear();
+    });
+
+    // Re-seed default gems
+    final gemRepo = ref.read(gemRepositoryProvider);
+    await gemRepo.initializeDefaults();
+
+    // Reset state
+    ref.read(activeConversationProvider.notifier).state = null;
+    ref.read(activeGemProvider.notifier).state = null;
+    ref.invalidate(allGemsProvider);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All data cleared'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to clear data: $e')),
+      );
+    }
+  }
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -194,18 +328,14 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.download_rounded),
             title: const Text('Export Chat History'),
             subtitle: const Text('Save as JSON'),
-            onTap: () {
-              // TODO: Export
-            },
+            onTap: () => _exportChatHistory(context, ref),
           ),
           ListTile(
             leading: const Icon(Icons.delete_forever_rounded,
                 color: AppColors.error),
             title: const Text('Clear All Data',
                 style: TextStyle(color: AppColors.error)),
-            onTap: () {
-              // TODO: Show confirmation dialog
-            },
+            onTap: () => _clearAllData(context, ref),
           ),
           const Divider(),
 
