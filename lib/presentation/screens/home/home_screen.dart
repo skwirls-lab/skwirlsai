@@ -9,6 +9,7 @@ import '../../widgets/gem_card.dart';
 import '../../widgets/conversation_tile.dart';
 import '../../widgets/responsive_layout.dart';
 import '../chat/chat_screen.dart';
+import '../gems/gem_editor_screen.dart';
 import '../gems/gem_list_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -235,6 +236,23 @@ class _DesktopHome extends ConsumerWidget {
                     ),
                   ),
                 ),
+                // Create new gem
+                IconButton(
+                  icon: Icon(Icons.add_rounded,
+                      size: 20, color: AppColors.textTertiary),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GemEditorScreen(
+                        onSaved: () {
+                          ref.invalidate(allGemsProvider);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ),
+                  tooltip: 'Create Gem',
+                ),
                 // Settings
                 IconButton(
                   icon: Icon(Icons.settings_outlined,
@@ -321,14 +339,38 @@ class _DesktopHome extends ConsumerWidget {
 // Search query state
 final _searchQueryProvider = StateProvider<String>((ref) => '');
 
-class _ConversationSearchBar extends ConsumerWidget {
+class _ConversationSearchBar extends ConsumerStatefulWidget {
   const _ConversationSearchBar();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ConversationSearchBar> createState() =>
+      _ConversationSearchBarState();
+}
+
+class _ConversationSearchBarState
+    extends ConsumerState<_ConversationSearchBar> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Sync text field with provider (e.g. if cleared externally)
+    final query = ref.watch(_searchQueryProvider);
+    if (_controller.text != query) {
+      _controller.text = query;
+      _controller.selection =
+          TextSelection.collapsed(offset: query.length);
+    }
+
     return SizedBox(
       height: 34,
       child: TextField(
+        controller: _controller,
         style: AppTextStyles.bodySmall,
         decoration: InputDecoration(
           hintText: 'Search chats...',
@@ -340,16 +382,18 @@ class _ConversationSearchBar extends ConsumerWidget {
           prefixIconConstraints: const BoxConstraints(minWidth: 36),
           filled: true,
           fillColor: AppColors.surfaceLight,
-          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
           ),
-          suffixIcon: ref.watch(_searchQueryProvider).isNotEmpty
+          suffixIcon: query.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.close_rounded,
                       size: 14, color: AppColors.textTertiary),
                   onPressed: () {
+                    _controller.clear();
                     ref.read(_searchQueryProvider.notifier).state = '';
                   },
                   padding: EdgeInsets.zero,
