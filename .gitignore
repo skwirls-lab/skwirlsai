@@ -1,0 +1,42 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Platform build artifacts
+android/.gradle/
+android/app/debug/
+android/app/release/
+android/local.properties
+ios/Pods/
+ios/.symlinks/
+macos/Pods/
+macos/.symlinks/
+
+# Generated
+*.freezed.dart
+*.mocks.dart
+pubspec.lock
+
+# Models (large binary files, don't commit)
+/models/
+*.gguf
+*.safetensors
+*.onnx
+
+# Secrets
+*.env
+google-services.json
+GoogleService-Info.plist
+
+# Windsurf
+.windsurf/
+
+# OS
+.DS_Store
+Thumbs.db
