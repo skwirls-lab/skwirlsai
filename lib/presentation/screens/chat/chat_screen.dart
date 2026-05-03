@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -26,6 +27,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isStreaming = false;
   bool _agentModeEnabled = false;
   String _streamBuffer = '';
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(() {
+      final has = _textController.text.trim().isNotEmpty;
+      if (has != _hasText) setState(() => _hasText = has);
+    });
+    // Enter to send, Shift+Enter for newline
+    _focusNode.onKeyEvent = (node, event) {
+      if (event is KeyDownEvent &&
+          event.logicalKey == LogicalKeyboardKey.enter &&
+          !HardwareKeyboard.instance.isShiftPressed) {
+        if (_hasText && !_isStreaming) {
+          _sendMessage();
+        }
+        return KeyEventResult.handled; // consume the Enter
+      }
+      return KeyEventResult.ignored;
+    };
+  }
 
   @override
   void dispose() {
@@ -262,6 +285,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             maxLines: 6,
                             minLines: 1,
                             style: AppTextStyles.chatMessage,
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
                             decoration: InputDecoration(
                               hintText: _agentModeEnabled
                                   ? 'Ask the agent...'
@@ -275,7 +300,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 vertical: 12,
                               ),
                             ),
-                            onSubmitted: (_) => _sendMessage(),
                           ),
                         ),
                         // Send / Stop
@@ -290,17 +314,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           IconButton(
                             icon: const Icon(Icons.arrow_upward_rounded, size: 20),
                             style: IconButton.styleFrom(
-                              backgroundColor: _textController.text.trim().isEmpty
-                                  ? AppColors.surfaceHighlight
-                                  : AppColors.amber,
-                              foregroundColor: _textController.text.trim().isEmpty
-                                  ? AppColors.textTertiary
-                                  : AppColors.textOnAmber,
+                              backgroundColor: _hasText
+                                  ? AppColors.amber
+                                  : AppColors.surfaceHighlight,
+                              foregroundColor: _hasText
+                                  ? AppColors.textOnAmber
+                                  : AppColors.textTertiary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            onPressed: _sendMessage,
+                            onPressed: _hasText ? _sendMessage : null,
                             tooltip: 'Send message',
                           ),
                         const SizedBox(width: 4),
@@ -358,6 +382,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final activeGem = ref.read(activeGemProvider);
     final settings = ref.read(settingsProvider);
     final messages = await convRepo.getMessages(conversationId);
+
+    // Apply generation settings to inference service
+    inferenceService.temperature = settings.temperature;
+    inferenceService.topP = settings.topP;
+    inferenceService.topK = settings.topK;
+    inferenceService.maxTokens = settings.maxTokens;
+    inferenceService.repeatPenalty = settings.repeatPenalty;
 
     // Build chat messages for inference — send full conversation context
     final chatMessages = messages.map((m) => ChatMessage(
