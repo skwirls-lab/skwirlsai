@@ -64,14 +64,10 @@ class CalendarService {
   }
 
   Future<cal.CalendarApi?> _getCalendarApi() async {
-    final credentials = _authService.credentials;
-    if (credentials == null) return null;
+    final token = await _authService.getAccessToken();
+    if (token == null) return null;
 
-    final client = _AuthClient(
-      http.Client(),
-      credentials.accessToken.data,
-    );
-
+    final client = _AuthClient(http.Client(), token);
     return cal.CalendarApi(client);
   }
 }

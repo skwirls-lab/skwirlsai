@@ -12,6 +12,8 @@ import '../../providers/database_provider.dart';
 import '../../providers/gem_provider.dart';
 import '../../providers/model_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/sync_provider.dart';
+import '../../../data/services/sync_service.dart' show SyncStatus;
 import '../models/model_management_screen.dart';
 
 Future<void> _exportChatHistory(BuildContext context, WidgetRef ref) async {
@@ -194,17 +196,43 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           if (isAuth)
-            ListTile(
-              leading: const Icon(Icons.sync_rounded),
-              title: const Text('Sync Status'),
-              subtitle: const Text('Last synced: N/A'),
-              trailing: IconButton(
-                icon: const Icon(Icons.sync_rounded),
-                onPressed: () {
-                  // TODO: Trigger manual sync
+            Consumer(builder: (context, ref, _) {
+              final syncStatusAsync = ref.watch(syncStatusProvider);
+              final lastSync = ref.watch(lastSyncTimeProvider);
+              final statusText = syncStatusAsync.when(
+                data: (s) {
+                  switch (s) {
+                    case SyncStatus.syncing:
+                      return 'Syncing...';
+                    case SyncStatus.synced:
+                      return lastSync != null
+                          ? 'Last synced: ${_formatTime(lastSync)}'
+                          : 'Synced';
+                    case SyncStatus.offline:
+                      return 'Offline';
+                    case SyncStatus.error:
+                      return 'Sync error';
+                    default:
+                      return lastSync != null
+                          ? 'Last synced: ${_formatTime(lastSync)}'
+                          : 'Not synced yet';
+                  }
                 },
-              ),
-            ),
+                loading: () => 'Checking...',
+                error: (_, __) => 'Sync unavailable',
+              );
+              return ListTile(
+                leading: const Icon(Icons.sync_rounded),
+                title: const Text('Sync Status'),
+                subtitle: Text(statusText),
+                trailing: IconButton(
+                  icon: const Icon(Icons.sync_rounded),
+                  onPressed: () {
+                    ref.read(syncServiceProvider).syncNow();
+                  },
+                ),
+              );
+            }),
           if (isAuth)
             ListTile(
               leading: const Icon(Icons.logout_rounded,
@@ -371,6 +399,13 @@ class _SectionHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatTime(DateTime dt) {
+  final local = dt.toLocal();
+  final h = local.hour.toString().padLeft(2, '0');
+  final m = local.minute.toString().padLeft(2, '0');
+  return '${local.month}/${local.day} $h:$m';
 }
 
 class _SliderTile extends StatelessWidget {

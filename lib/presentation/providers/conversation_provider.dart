@@ -2,11 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/conversation.dart';
 import '../../data/models/message.dart';
 import '../../data/repositories/conversation_repository.dart';
+import '../../data/repositories/sync_queue_repository.dart';
 import 'database_provider.dart';
+
+final syncQueueRepositoryProvider = Provider<SyncQueueRepository>((ref) {
+  final isar = ref.watch(isarProvider);
+  return SyncQueueRepository(isar: isar);
+});
 
 final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
   final isar = ref.watch(isarProvider);
-  return ConversationRepository(isar: isar);
+  final syncQueue = ref.watch(syncQueueRepositoryProvider);
+  return ConversationRepository(isar: isar, syncQueue: syncQueue);
 });
 
 final conversationsForAcornProvider =

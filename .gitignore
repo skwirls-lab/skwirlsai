@@ -33,6 +33,7 @@ pubspec.lock
 *.env
 google-services.json
 GoogleService-Info.plist
+lib/core/constants/google_oauth_config.dart
 
 # Windsurf
 .windsurf/

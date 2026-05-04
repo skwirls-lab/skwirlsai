@@ -5,13 +5,18 @@ import '../../core/utils/logger.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../models/attachment.dart';
+import '../models/sync_queue.dart';
+import 'sync_queue_repository.dart';
 
 class ConversationRepository {
   static const _tag = 'ConversationRepo';
   final Isar _isar;
   final _uuid = const Uuid();
+  SyncQueueRepository? _syncQueue;
 
-  ConversationRepository({required Isar isar}) : _isar = isar;
+  ConversationRepository({required Isar isar, SyncQueueRepository? syncQueue})
+      : _isar = isar,
+        _syncQueue = syncQueue;
 
   /// Create a new conversation
   Future<Conversation> createConversation({
@@ -32,6 +37,14 @@ class ConversationRepository {
     });
 
     Log.i(_tag, 'Created conversation: ${conversation.uuid}');
+
+    _syncQueue?.enqueue(
+      entityType: 'conversation',
+      entityId: conversation.uuid,
+      action: SyncAction.create,
+      entityJson: conversation.toJson(),
+    );
+
     return conversation;
   }
 
@@ -125,6 +138,13 @@ class ConversationRepository {
     });
 
     Log.i(_tag, 'Deleted conversation: $uuid');
+
+    _syncQueue?.enqueue(
+      entityType: 'conversation',
+      entityId: uuid,
+      action: SyncAction.delete,
+      entityJson: {'uuid': uuid},
+    );
   }
 
   /// Add a message to a conversation
