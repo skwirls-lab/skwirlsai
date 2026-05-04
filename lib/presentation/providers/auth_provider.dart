@@ -14,10 +14,14 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
 });
 
 final currentUserProvider = Provider<AppUser?>((ref) {
+  // Watch the stream so we re-evaluate when auth state changes
+  ref.watch(authStateProvider);
   return ref.watch(authServiceProvider).currentUser;
 });
 
 final isAuthenticatedProvider = Provider<bool>((ref) {
-  final user = ref.watch(currentUserProvider);
+  // Watch the stream to stay reactive
+  ref.watch(authStateProvider);
+  final user = ref.watch(authServiceProvider).currentUser;
   return user != null && !user.isAnonymous;
 });

@@ -184,6 +184,13 @@ class SettingsScreen extends ConsumerWidget {
                 onPressed: () async {
                   try {
                     await ref.read(authServiceProvider).signInWithGoogle();
+                    // Kick off first sync after sign-in
+                    if (context.mounted) {
+                      ref.read(syncServiceProvider).syncNow();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Signed in! Starting sync...')),
+                      );
+                    }
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

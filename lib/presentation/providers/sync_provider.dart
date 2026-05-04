@@ -7,6 +7,16 @@ final syncServiceProvider = Provider<SyncService>((ref) {
   final authService = ref.watch(authServiceProvider);
   final isar = ref.watch(isarProvider);
   final service = SyncService(authService: authService, isar: isar);
+  // Auto-initialize when auth state changes
+  ref.listen(isAuthenticatedProvider, (prev, isAuth) {
+    if (isAuth) {
+      service.initialize();
+    }
+  });
+  // Initialize immediately if already authenticated
+  if (authService.isAuthenticated) {
+    service.initialize();
+  }
   ref.onDispose(() => service.dispose());
   return service;
 });
