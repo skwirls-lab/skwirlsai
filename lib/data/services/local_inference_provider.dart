@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
 import 'package:llama_cpp_dart/llama_cpp_dart.dart';
 import '../../core/utils/logger.dart';
@@ -38,12 +37,18 @@ class LocalInferenceProvider implements InferenceProvider {
 
     Log.i(_tag, 'Loading model: ${config.localPath}');
 
-    // On Windows, pre-load ALL bundled llama.cpp DLLs into the process.
-    // Symbols are split across llama.dll, ggml.dll, ggml-base.dll, etc.
-    // DynamicLibrary.process() searches all loaded modules on Windows,
-    // so we load them all first, then let the FFI use process().
-    if (Platform.isWindows) {
-      await _preloadWindowsDlls();
+    // On Windows, point to the monolithic llama DLL bundled with the app.
+    // All llama.cpp symbols (llama_*, ggml_*, mtmd_*) are in one DLL.
+    if (Platform.isWindows && !_windowsDllsLoaded) {
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
+      final dllPath = '$exeDir\\llama_monolithic.dll';
+      if (await File(dllPath).exists()) {
+        Llama.libraryPath = dllPath;
+        Log.i(_tag, 'Using monolithic DLL: $dllPath');
+      } else {
+        Log.w(_tag, 'llama_monolithic.dll not found at $dllPath');
+      }
+      _windowsDllsLoaded = true;
     }
 
     try {
@@ -62,6 +67,7 @@ class LocalInferenceProvider implements InferenceProvider {
         config.localPath!,
         modelParams: modelParams,
         contextParams: contextParams,
+        verbose: true, // Show native llama.cpp logs to diagnose load failures
       );
 
       Log.i(_tag, 'Model loaded successfully');
@@ -138,56 +144,6 @@ class LocalInferenceProvider implements InferenceProvider {
     }
   }
 
-  /// Pre-load all bundled llama.cpp DLLs into the process on Windows.
-  /// Symbols are spread across llama.dll, ggml.dll, ggml-base.dll, etc.
-  /// After loading, DynamicLibrary.process() can find symbols from any of them.
-  Future<void> _preloadWindowsDlls() async {
-    if (_windowsDllsLoaded) return;
-
-    final exeDir = File(Platform.resolvedExecutable).parent.path;
-
-    // Load order matters: dependencies first, then dependents.
-    // ggml-base → ggml-cpu-* → ggml → llama
-    final dllNames = <String>[
-      'libomp140.x86_64.dll',
-      'ggml-base.dll',
-      'ggml-cpu-sse42.dll',
-      'ggml-cpu-sandybridge.dll',
-      'ggml-cpu-ivybridge.dll',
-      'ggml-cpu-haswell.dll',
-      'ggml-cpu-skylakex.dll',
-      'ggml-cpu-alderlake.dll',
-      'ggml-cpu-icelake.dll',
-      'ggml-cpu-cascadelake.dll',
-      'ggml-cpu-cannonlake.dll',
-      'ggml-cpu-cooperlake.dll',
-      'ggml-cpu-sapphirerapids.dll',
-      'ggml-cpu-piledriver.dll',
-      'ggml-cpu-zen4.dll',
-      'ggml-cpu-x64.dll',
-      'ggml-rpc.dll',
-      'ggml.dll',
-      'llama.dll',
-      'llama-common.dll',
-    ];
-
-    for (final name in dllNames) {
-      final path = '$exeDir\\$name';
-      if (await File(path).exists()) {
-        try {
-          DynamicLibrary.open(path);
-          Log.d(_tag, 'Loaded $name');
-        } catch (e) {
-          Log.w(_tag, 'Failed to load $name: $e');
-        }
-      }
-    }
-
-    // Ensure Llama uses DynamicLibrary.process() so it searches all modules
-    Llama.libraryPath = null;
-    _windowsDllsLoaded = true;
-    Log.i(_tag, 'Windows DLLs pre-loaded from $exeDir');
-  }
 
   /// Build a chat prompt string. Uses ChatML format which is widely supported.
   String _buildPrompt(List<ChatMessage> messages, String? systemPrompt) {
