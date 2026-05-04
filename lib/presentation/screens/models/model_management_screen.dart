@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/storage_paths.dart';
@@ -20,6 +21,8 @@ class _ModelManagementScreenState
     extends ConsumerState<ModelManagementScreen> {
   bool _isConnecting = false;
   String? _connectError;
+  String? _downloadingModelId;
+  double _downloadProgress = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -136,45 +139,87 @@ class _ModelManagementScreenState
             data: (models) {
               final localModels =
                   models.where((m) => m.isLocal).toList();
-
-              if (localModels.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.folder_open_rounded,
-                          size: 40, color: AppColors.textTertiary),
-                      const SizedBox(height: 8),
-                      Text('No local models found',
-                          style: AppTextStyles.body
-                              .copyWith(color: AppColors.textSecondary)),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Import a GGUF file to run models offline',
-                        style: AppTextStyles.bodySmall,
-                      ),
-                    ],
-                  ),
-                );
-              }
+              final downloadedModels = localModels
+                  .where((m) => m.status == ModelStatus.downloaded)
+                  .toList();
+              final catalogModels = localModels
+                  .where((m) => m.status == ModelStatus.notDownloaded)
+                  .toList();
 
               return Column(
-                children: localModels.map((model) {
-                  final isConnected = inferenceService.isModelLoaded &&
-                      inferenceService.loadedModelPath == model.filePath;
-                  return _LocalModelCard(
-                    model: model,
-                    isConnected: isConnected,
-                    isConnecting: _isConnecting,
-                    onConnect: () => _connectLocal(model),
-                    onDelete: () => _deleteModel(model),
-                  );
-                }).toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Downloaded models
+                  if (downloadedModels.isNotEmpty) ...[
+                    Text('Ready to Use',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    ...downloadedModels.map((model) {
+                      final isConnected =
+                          inferenceService.isModelLoaded &&
+                              inferenceService.loadedModelPath ==
+                                  model.filePath;
+                      return _LocalModelCard(
+                        model: model,
+                        isConnected: isConnected,
+                        isConnecting: _isConnecting,
+                        onConnect: () => _connectLocal(model),
+                        onDelete: () => _deleteModel(model),
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
+                  // Catalog models available for download
+                  if (catalogModels.isNotEmpty) ...[
+                    Text('Available for Download',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    ...catalogModels.map((model) {
+                      final isDownloading =
+                          _downloadingModelId == model.id;
+                      return _CatalogModelCard(
+                        model: model,
+                        isDownloading: isDownloading,
+                        downloadProgress: isDownloading
+                            ? _downloadProgress
+                            : 0,
+                        onDownload: () =>
+                            _downloadModel(model.id),
+                        onCancel: _cancelDownload,
+                      );
+                    }),
+                  ],
+                  if (downloadedModels.isEmpty &&
+                      catalogModels.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: AppColors.divider),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.folder_open_rounded,
+                              size: 40,
+                              color: AppColors.textTertiary),
+                          const SizedBox(height: 8),
+                          Text('No local models found',
+                              style: AppTextStyles.body.copyWith(
+                                  color:
+                                      AppColors.textSecondary)),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Import a GGUF file or download from the catalog above',
+                            style: AppTextStyles.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               );
             },
           ),
@@ -401,6 +446,57 @@ class _ModelManagementScreenState
       await ref.read(modelServiceProvider).deleteModel(model.id);
       ref.invalidate(availableModelsProvider);
     }
+  }
+
+  Future<void> _downloadModel(String modelId) async {
+    setState(() {
+      _downloadingModelId = modelId;
+      _downloadProgress = 0;
+    });
+
+    try {
+      final modelService = ref.read(modelServiceProvider);
+      await modelService.downloadModel(
+        modelId,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _downloadProgress = progress.percentage);
+          }
+        },
+      );
+
+      ref.invalidate(availableModelsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Download complete! Tap Load to start using it.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _downloadingModelId = null;
+          _downloadProgress = 0;
+        });
+      }
+    }
+  }
+
+  void _cancelDownload() {
+    ref.read(modelServiceProvider).cancelDownload();
+    setState(() {
+      _downloadingModelId = null;
+      _downloadProgress = 0;
+    });
   }
 
   Future<void> _importCustomModel() async {
@@ -671,6 +767,104 @@ class _LocalModelCard extends StatelessWidget {
             color: AppColors.textTertiary,
             onPressed: onDelete,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CatalogModelCard extends StatelessWidget {
+  final ModelInfo model;
+  final bool isDownloading;
+  final double downloadProgress;
+  final VoidCallback onDownload;
+  final VoidCallback onCancel;
+
+  const _CatalogModelCard({
+    required this.model,
+    required this.isDownloading,
+    required this.downloadProgress,
+    required this.onDownload,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final catalogInfo = ApiConstants.gemma4Models[model.id];
+    final sizeDisplay = model.fileSizeMB >= 1000
+        ? '${(model.fileSizeMB / 1000).toStringAsFixed(1)} GB'
+        : '${model.fileSizeMB} MB';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.cloud_download_outlined,
+                  color: AppColors.teal, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      model.displayName,
+                      style: AppTextStyles.body
+                          .copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$sizeDisplay${catalogInfo != null ? '  |  ${catalogInfo.description}' : ''}',
+                      style: AppTextStyles.bodySmall,
+                    ),
+                    if (catalogInfo != null)
+                      Text(
+                        'Requires ${catalogInfo.ramDisplay}',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textTertiary),
+                      ),
+                  ],
+                ),
+              ),
+              if (!isDownloading)
+                ElevatedButton.icon(
+                  onPressed: onDownload,
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Download'),
+                )
+              else
+                TextButton(
+                  onPressed: onCancel,
+                  child: const Text('Cancel'),
+                ),
+            ],
+          ),
+          if (isDownloading) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: downloadProgress / 100,
+                minHeight: 6,
+                backgroundColor: AppColors.divider,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.teal),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${downloadProgress.toStringAsFixed(1)}%',
+              style: AppTextStyles.bodySmall,
+            ),
+          ],
         ],
       ),
     );

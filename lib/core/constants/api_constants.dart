@@ -16,37 +16,37 @@ class ApiConstants {
       'https://www.googleapis.com/calendar/v3';
   static const String gmailApiBase = 'https://www.googleapis.com/gmail/v1';
 
-  // Hugging Face model repository URLs (GGUF format)
+  // Hugging Face model repository URLs (GGUF Q4_K_M quantized)
   static const Map<String, ModelDownloadInfo> gemma4Models = {
     'gemma-2-2b': ModelDownloadInfo(
       id: 'gemma-2-2b',
-      displayName: 'Gemma 4 E2B (2B)',
-      repoId: 'google/gemma-2-2b-it-GGUF',
-      fileName: 'gemma-2-2b-it-q4_k_m.gguf',
-      fileSizeMB: 1500,
+      displayName: 'Gemma 2 2B Instruct (Q4_K_M)',
+      repoId: 'bartowski/gemma-2-2b-it-GGUF',
+      fileName: 'gemma-2-2b-it-Q4_K_M.gguf',
+      fileSizeMB: 1630,
       minRamMB: 4096,
       minVramMB: 0,
-      description: 'Lightweight model for devices with limited resources',
+      description: 'Lightweight — good for low-RAM devices',
     ),
     'gemma-2-9b': ModelDownloadInfo(
       id: 'gemma-2-9b',
-      displayName: 'Gemma 4 E4B (9B)',
-      repoId: 'google/gemma-2-9b-it-GGUF',
-      fileName: 'gemma-2-9b-it-q4_k_m.gguf',
-      fileSizeMB: 5500,
+      displayName: 'Gemma 2 9B Instruct (Q4_K_M)',
+      repoId: 'bartowski/gemma-2-9b-it-GGUF',
+      fileName: 'gemma-2-9b-it-Q4_K_M.gguf',
+      fileSizeMB: 5490,
       minRamMB: 8192,
       minVramMB: 0,
-      description: 'Balanced model for mid-range devices',
+      description: 'Balanced quality and speed for 8GB+ RAM',
     ),
     'gemma-2-27b': ModelDownloadInfo(
       id: 'gemma-2-27b',
-      displayName: 'Gemma 4 26B (27B)',
-      repoId: 'google/gemma-2-27b-it-GGUF',
-      fileName: 'gemma-2-27b-it-q4_k_m.gguf',
-      fileSizeMB: 15000,
-      minRamMB: 16384,
+      displayName: 'Gemma 2 27B Instruct (Q4_K_M)',
+      repoId: 'bartowski/gemma-2-27b-it-GGUF',
+      fileName: 'gemma-2-27b-it-Q4_K_M.gguf',
+      fileSizeMB: 16700,
+      minRamMB: 20480,
       minVramMB: 0,
-      description: 'High-quality model for powerful desktops',
+      description: 'High quality — needs 20GB+ RAM',
     ),
   };
 
