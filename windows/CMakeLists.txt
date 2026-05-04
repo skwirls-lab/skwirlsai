@@ -106,3 +106,8 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Copy pre-built llama.cpp DLLs next to the executable.
+file(GLOB LLAMA_DLLS "${CMAKE_CURRENT_SOURCE_DIR}/llama_libs/*.dll")
+install(FILES ${LLAMA_DLLS} DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)

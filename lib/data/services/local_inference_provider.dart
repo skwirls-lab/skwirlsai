@@ -36,9 +36,22 @@ class LocalInferenceProvider implements InferenceProvider {
 
     Log.i(_tag, 'Loading model: ${config.localPath}');
 
+    // On Windows, point to the pre-built llama.dll bundled with the app
+    if (Platform.isWindows && Llama.libraryPath == null) {
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
+      final llamaDll = '$exeDir\\llama.dll';
+      if (await File(llamaDll).exists()) {
+        Llama.libraryPath = llamaDll;
+        Log.i(_tag, 'Using llama.dll from: $llamaDll');
+      } else {
+        Log.w(_tag, 'llama.dll not found at $llamaDll — FFI lookup may fail');
+      }
+    }
+
     try {
       final modelParams = ModelParams();
-      modelParams.nGpuLayers = config.gpuLayers ?? 99;
+      // CPU-only build: default to 0 GPU layers on Windows
+      modelParams.nGpuLayers = config.gpuLayers ?? (Platform.isWindows ? 0 : 99);
 
       final contextParams = ContextParams();
       contextParams.nCtx = config.contextSize ?? 4096;
