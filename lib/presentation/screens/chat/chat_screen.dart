@@ -6,7 +6,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/message.dart';
 import '../../../data/services/inference_service.dart';
+import '../../../data/services/rag_service.dart';
 import '../../providers/conversation_provider.dart';
+import '../../providers/database_provider.dart';
 import '../../providers/gem_provider.dart';
 import '../../providers/model_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -400,8 +402,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           content: m.content,
         )).toList();
 
-    // Build system prompt: acorn prompt + app context
-    final systemPrompt = _buildSystemPrompt(activeAcorn, settings);
+    // If RAG is enabled, search documents for relevant context
+    String? ragContext;
+    if (activeAcorn != null && activeAcorn.ragEnabled == true) {
+      final isar = ref.read(isarProvider);
+      final ragService = RagService(isar: isar);
+      final lastUserMsg = messages.lastWhere(
+        (m) => m.role == MessageRole.user,
+        orElse: () => messages.last,
+      );
+      final results = await ragService.searchBM25(
+        query: lastUserMsg.content,
+        acornId: activeAcorn.uuid,
+      );
+      if (results.isNotEmpty) {
+        ragContext = ragService.buildRagContext(results);
+      }
+    }
+
+    // Build system prompt: acorn prompt + RAG context + app context
+    final systemPrompt = _buildSystemPrompt(activeAcorn, settings, ragContext: ragContext);
 
     setState(() {
       _isStreaming = true;
@@ -442,7 +462,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  String _buildSystemPrompt(dynamic activeAcorn, dynamic settings) {
+  String _buildSystemPrompt(dynamic activeAcorn, dynamic settings, {String? ragContext}) {
     final inferenceService = ref.read(inferenceServiceProvider);
     final buf = StringBuffer();
 
@@ -477,6 +497,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     buf.writeln('Current date: ${DateTime.now().toIso8601String().split('T')[0]}');
     buf.writeln('Platform: ${_getPlatformName()}');
     buf.writeln();
+
+    // RAG context from documents
+    if (ragContext != null && ragContext.isNotEmpty) {
+      buf.writeln(ragContext);
+      buf.writeln();
+      buf.writeln('Use the above document context to inform your answer when relevant.');
+      buf.writeln('If the context does not contain the answer, say so and answer from your general knowledge.');
+      buf.writeln();
+    }
 
     // Behavioral guidelines
     buf.writeln('Guidelines:');

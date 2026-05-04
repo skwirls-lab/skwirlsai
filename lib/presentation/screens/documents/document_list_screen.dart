@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/extensions.dart';
@@ -93,10 +94,58 @@ class DocumentListScreen extends ConsumerWidget {
   }
 
   Future<void> _addDocument(BuildContext context, WidgetRef ref) async {
-    // TODO: Use file_picker to select document
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Document picker coming soon')),
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'md', 'pdf', 'docx', 'csv', 'json'],
+        allowMultiple: true,
+        dialogTitle: 'Select documents to add',
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final isar = ref.read(isarProvider);
+      final ragService = RagService(isar: isar);
+
+      int successCount = 0;
+      for (final file in result.files) {
+        if (file.path == null) continue;
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ingesting ${file.name}...')),
+          );
+        }
+
+        try {
+          await ragService.ingestDocument(
+            filePath: file.path!,
+            acornId: acornId,
+          );
+          successCount++;
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to ingest ${file.name}: $e')),
+            );
+          }
+        }
+      }
+
+      if (context.mounted && successCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$successCount document(s) added')),
+        );
+        // Rebuild the document list
+        (context as Element).markNeedsBuild();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _deleteDocument(

@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:isar/isar.dart';
+import 'package:archive/archive.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart' as spdf;
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import '../models/document.dart';
@@ -303,13 +306,9 @@ class RagService {
       case 'md':
         return File(filePath).readAsString();
       case 'pdf':
-        // TODO: Integrate PDF parsing library
-        Log.w(_tag, 'PDF parsing not yet implemented, reading as raw text');
-        return File(filePath).readAsString();
+        return _extractPdfText(filePath);
       case 'docx':
-        // TODO: Integrate DOCX parsing library
-        Log.w(_tag, 'DOCX parsing not yet implemented, reading as raw text');
-        return File(filePath).readAsString();
+        return _extractDocxText(filePath);
       default:
         return File(filePath).readAsString();
     }
@@ -350,6 +349,63 @@ class RagService {
     // TODO: Connect to embedding model (ONNX Runtime or similar)
     // For now, return empty list
     return [];
+  }
+
+  /// Extract text from a PDF file using Syncfusion PDF
+  Future<String> _extractPdfText(String filePath) async {
+    try {
+      final bytes = await File(filePath).readAsBytes();
+      final document = spdf.PdfDocument(inputBytes: Uint8List.fromList(bytes));
+      final buffer = StringBuffer();
+
+      for (int i = 0; i < document.pages.count; i++) {
+        final text = spdf.PdfTextExtractor(document)
+            .extractText(startPageIndex: i, endPageIndex: i);
+        if (text.isNotEmpty) {
+          buffer.writeln(text);
+        }
+      }
+
+      document.dispose();
+      final result = buffer.toString().trim();
+      Log.i(_tag, 'Extracted ${result.length} chars from PDF');
+      return result.isEmpty ? '[Empty PDF]' : result;
+    } catch (e) {
+      Log.e(_tag, 'PDF extraction failed, falling back to raw read', e);
+      return File(filePath).readAsString();
+    }
+  }
+
+  /// Extract text from a DOCX file (basic XML extraction)
+  Future<String> _extractDocxText(String filePath) async {
+    try {
+      final bytes = await File(filePath).readAsBytes();
+      // DOCX is a ZIP containing XML files
+      // We look for word/document.xml and extract text nodes
+      final archive = ZipDecoder().decodeBytes(bytes);
+
+      final docXml = archive.files
+          .where((f) => f.name == 'word/document.xml')
+          .firstOrNull;
+
+      if (docXml == null) {
+        Log.w(_tag, 'No word/document.xml found in DOCX');
+        return File(filePath).readAsString();
+      }
+
+      final xmlContent = utf8.decode(docXml.content as List<int>);
+      // Strip XML tags and extract text content
+      final text = xmlContent
+          .replaceAll(RegExp(r'<[^>]+>'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+      Log.i(_tag, 'Extracted ${text.length} chars from DOCX');
+      return text.isEmpty ? '[Empty DOCX]' : text;
+    } catch (e) {
+      Log.e(_tag, 'DOCX extraction failed, falling back to raw read', e);
+      return File(filePath).readAsString();
+    }
   }
 
   double _cosineSimilarity(List<double> a, List<double> b) {

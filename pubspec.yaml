@@ -54,6 +54,10 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_markdown: ^0.7.3+2
 
+  # Document Parsing
+  syncfusion_flutter_pdf: ^27.1.48
+  archive: ^4.0.2
+
   # Utilities
   uuid: ^4.5.0
   crypto: ^3.0.3
