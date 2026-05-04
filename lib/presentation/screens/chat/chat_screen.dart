@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -595,9 +596,54 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
-  void _showAttachmentPicker() {
-    // TODO: Show attachment picker bottom sheet
-    _showSnackBar('Attachment picker coming soon');
+  Future<void> _showAttachmentPicker() async {
+    final activeConv = ref.read(activeConversationProvider);
+    if (activeConv == null) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'md', 'pdf', 'docx', 'csv', 'json'],
+        allowMultiple: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final isar = ref.read(isarProvider);
+      final ragService = RagService(isar: isar);
+      final acornId = activeConv.acornId;
+
+      int ingested = 0;
+      for (final file in result.files) {
+        if (file.path == null) continue;
+        try {
+          await ragService.ingestDocument(
+            filePath: file.path!,
+            acornId: acornId,
+          );
+          ingested++;
+        } catch (e) {
+          _showSnackBar('Failed to ingest ${file.name}: $e');
+        }
+      }
+
+      if (ingested > 0) {
+        // Auto-enable RAG on this acorn if not already enabled
+        final activeAcorn = ref.read(activeAcornProvider);
+        if (activeAcorn != null && !activeAcorn.ragEnabled) {
+          activeAcorn.ragEnabled = true;
+          final acornRepo = ref.read(acornRepositoryProvider);
+          await acornRepo.updateAcorn(activeAcorn);
+        }
+
+        _showSnackBar(
+          '$ingested document${ingested > 1 ? 's' : ''} added — '
+          'context will be used in this conversation',
+        );
+      }
+    } catch (e) {
+      _showSnackBar('File picker error: $e');
+    }
   }
 
   void _editMessage(Message message) {
