@@ -155,6 +155,7 @@ class ConversationRepository {
     String? thinkingContent,
     String? toolCallsJson,
     String? toolResultsJson,
+    String? attachmentIds,
   }) async {
     final message = Message()
       ..uuid = _uuid.v4()
@@ -164,6 +165,7 @@ class ConversationRepository {
       ..thinkingContent = thinkingContent
       ..toolCallsJson = toolCallsJson
       ..toolResultsJson = toolResultsJson
+      ..attachmentIds = attachmentIds
       ..timestamp = DateTime.now();
 
     await _isar.writeTxn(() async {

@@ -9,6 +9,7 @@ class AcornCard extends StatelessWidget {
   final int conversationCount;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final void Function(TapDownDetails)? onSecondaryTapDown;
 
   const AcornCard({
     super.key,
@@ -17,6 +18,7 @@ class AcornCard extends StatelessWidget {
     this.conversationCount = 0,
     required this.onTap,
     this.onLongPress,
+    this.onSecondaryTapDown,
   });
 
   Color get _acornColor {
@@ -33,6 +35,7 @@ class AcornCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
+      onSecondaryTapDown: onSecondaryTapDown,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),

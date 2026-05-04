@@ -33,7 +33,7 @@ class AppColors {
   static const Color systemMessageBorder = Color(0xFF2A4040);
 
   // Status colors
-  static const Color success = Color(0xFF4CAF50);
+  static const Color success = Color(0xFF58AFAE); // brand teal
   static const Color warning = Color(0xFFFF9800);
   static const Color error = Color(0xFFEF5350);
   static const Color info = Color(0xFF42A5F5);

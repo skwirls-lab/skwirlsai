@@ -1,9 +1,15 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/snackbar_helper.dart';
 import '../../../core/utils/validators.dart';
+import '../../../data/models/document.dart';
 import '../../../data/models/gem.dart';
+import '../../../data/repositories/document_repository.dart';
+import '../../../data/services/rag_service.dart';
+import '../../providers/database_provider.dart';
 import '../../providers/gem_provider.dart';
 
 class AcornEditorScreen extends ConsumerStatefulWidget {
@@ -28,6 +34,8 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
   late String _selectedColor;
   late bool _ragEnabled;
   late bool _agentModeDefault;
+  List<Document> _documents = [];
+  bool _loadingDocs = false;
 
   bool get _isEditing => widget.existingAcorn != null;
 
@@ -54,6 +62,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
     _selectedColor = widget.existingAcorn?.color ?? '#E3AB59';
     _ragEnabled = widget.existingAcorn?.ragEnabled ?? false;
     _agentModeDefault = widget.existingAcorn?.agentModeDefault ?? false;
+    if (_isEditing) _loadDocuments();
   }
 
   @override
@@ -89,7 +98,9 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
               children: _iconOptions.map((icon) {
                 final isSelected = icon == _selectedIcon;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedIcon = icon),
+                  onTap: () => setState(() {
+                    _selectedIcon = isSelected ? '🌰' : icon;
+                  }),
                   child: Container(
                     width: 44,
                     height: 44,
@@ -176,6 +187,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
               value: _agentModeDefault,
               onChanged: (v) => setState(() => _agentModeDefault = v),
             ),
+            if (_ragEnabled) ..._buildKnowledgeBaseSection(),
           ],
         ),
       ),
@@ -208,5 +220,105 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
     }
 
     widget.onSaved();
+  }
+
+  Future<void> _loadDocuments() async {
+    if (widget.existingAcorn == null) return;
+    setState(() => _loadingDocs = true);
+    final isar = ref.read(isarProvider);
+    final ragService = RagService(isar: isar);
+    final docs = await ragService.getDocumentsForAcorn(widget.existingAcorn!.uuid);
+    if (mounted) setState(() { _documents = docs; _loadingDocs = false; });
+  }
+
+  Future<void> _addDocuments() async {
+    final acornId = widget.existingAcorn?.uuid;
+    if (acornId == null) {
+      showTopSnackBar(context, 'Save the Acorn first, then add documents.');
+      return;
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['txt', 'md', 'pdf', 'docx', 'csv', 'json'],
+      allowMultiple: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final isar = ref.read(isarProvider);
+    final ragService = RagService(isar: isar);
+    int ingested = 0;
+    for (final file in result.files) {
+      if (file.path == null) continue;
+      try {
+        await ragService.ingestDocument(filePath: file.path!, acornId: acornId);
+        ingested++;
+      } catch (e) {
+        if (mounted) showTopSnackBar(context, 'Failed: ${file.name}: $e', backgroundColor: AppColors.error);
+      }
+    }
+    if (ingested > 0 && mounted) {
+      showTopSnackBar(context, '$ingested document${ingested > 1 ? 's' : ''} added');
+    }
+    _loadDocuments();
+  }
+
+  Future<void> _deleteDocument(Document doc) async {
+    final isar = ref.read(isarProvider);
+    final docRepo = DocumentRepository(isar: isar);
+    await docRepo.deleteDocument(doc.uuid);
+    _loadDocuments();
+  }
+
+  List<Widget> _buildKnowledgeBaseSection() {
+    return [
+      const SizedBox(height: 20),
+      Row(
+        children: [
+          Text('Knowledge Base', style: AppTextStyles.label),
+          const Spacer(),
+          TextButton.icon(
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Add Files'),
+            onPressed: _addDocuments,
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      if (_loadingDocs)
+        const Center(child: CircularProgressIndicator())
+      else if (_documents.isEmpty)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Text(
+            _isEditing
+                ? 'No documents yet. Add files to give this Acorn context.'
+                : 'Save the Acorn first, then add documents.',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+          ),
+        )
+      else
+        ...List.generate(_documents.length, (i) {
+          final doc = _documents[i];
+          final sizeKb = (doc.fileSize / 1024).toStringAsFixed(1);
+          return ListTile(
+            dense: true,
+            leading: Icon(Icons.description_outlined, color: AppColors.teal, size: 20),
+            title: Text(doc.title, style: AppTextStyles.bodySmall),
+            subtitle: Text('${doc.chunkCount} chunks  ·  $sizeKb KB',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary)),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+              onPressed: () => _deleteDocument(doc),
+            ),
+            contentPadding: EdgeInsets.zero,
+          );
+        }),
+    ];
   }
 }

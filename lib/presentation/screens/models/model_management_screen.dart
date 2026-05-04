@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/snackbar_helper.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/storage_paths.dart';
 import '../../../domain/entities/model_info.dart';
 import '../../../data/services/inference_service.dart';
 import '../../providers/model_provider.dart';
+import '../../providers/settings_provider.dart';
 
 class ModelManagementScreen extends ConsumerStatefulWidget {
   const ModelManagementScreen({super.key});
@@ -40,6 +42,7 @@ class _ModelManagementScreenState
             inferenceService: inferenceService,
             onDisconnect: () async {
               await inferenceService.disconnect();
+              ref.read(isModelLoadedProvider.notifier).state = false;
               setState(() {});
             },
           ),
@@ -349,14 +352,11 @@ class _ModelManagementScreenState
         modelName: effectiveModel,
         apiKey: apiKey,
       ));
+      ref.read(isModelLoadedProvider.notifier).state = true;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Connected to ${displayName ?? baseUrl}'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        showTopSnackBar(context, 'Connected to ${displayName ?? baseUrl}',
+            backgroundColor: AppColors.success);
       }
     } catch (e) {
       setState(() => _connectError = 'Connection failed: $e');
@@ -403,15 +403,16 @@ class _ModelManagementScreenState
 
     try {
       final inferenceService = ref.read(inferenceServiceProvider);
-      await inferenceService.connect(ModelConfig.local(path: model.filePath!));
+      final settings = ref.read(settingsProvider);
+      await inferenceService.connect(ModelConfig.local(
+        path: model.filePath!,
+        contextSize: settings.contextSize,
+      ));
+      ref.read(isModelLoadedProvider.notifier).state = true;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Loaded ${model.displayName}'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        showTopSnackBar(context, 'Loaded ${model.displayName}',
+            backgroundColor: AppColors.success);
       }
     } catch (e) {
       setState(() => _connectError = 'Failed to load: $e');
@@ -468,18 +469,13 @@ class _ModelManagementScreenState
       ref.invalidate(availableModelsProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Download complete! Tap Load to start using it.'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        showTopSnackBar(context, 'Download complete! Tap Load to start using it.',
+            backgroundColor: AppColors.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
+        showTopSnackBar(context, 'Download failed: $e',
+            backgroundColor: AppColors.error);
       }
     } finally {
       if (mounted) {
@@ -512,12 +508,8 @@ class _ModelManagementScreenState
 
       if (!path.toLowerCase().endsWith('.gguf')) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Only .gguf files are supported'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          showTopSnackBar(context, 'Only .gguf files are supported',
+              backgroundColor: AppColors.error);
         }
         return;
       }
@@ -527,18 +519,13 @@ class _ModelManagementScreenState
       ref.invalidate(availableModelsProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Model imported successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        showTopSnackBar(context, 'Model imported successfully',
+            backgroundColor: AppColors.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e')),
-        );
+        showTopSnackBar(context, 'Import failed: $e',
+            backgroundColor: AppColors.error);
       }
     }
   }

@@ -81,6 +81,10 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icons/app_icon.png"
 
+dependency_overrides:
+  llama_cpp_dart:
+    path: packages/llama_cpp_dart
+
 flutter:
   uses-material-design: true
 

@@ -79,6 +79,50 @@ class _MessageBubbleState extends State<MessageBubble> {
                             widget.message.thinkingContent!.isNotEmpty)
                           _ThinkingSection(
                               content: widget.message.thinkingContent!),
+                        // Attachment indicator
+                        if (_isUser &&
+                            widget.message.attachmentIds != null &&
+                            widget.message.attachmentIds!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: widget.message.attachmentIds!
+                                  .split(',')
+                                  .where((n) => n.trim().isNotEmpty)
+                                  .map((name) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              AppColors.teal.withOpacity(0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border: Border.all(
+                                              color: AppColors.teal
+                                                  .withOpacity(0.3)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                                Icons.description_outlined,
+                                                size: 13,
+                                                color: AppColors.teal),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              name.trim(),
+                                              style: AppTextStyles.labelSmall
+                                                  .copyWith(
+                                                      color: AppColors.teal),
+                                            ),
+                                          ],
+                                        ),
+                                      ))
+                                  .toList(),
+                            ),
+                          ),
                         // Message content — markdown for assistant, plain for user
                         if (_isUser)
                           SelectableText(

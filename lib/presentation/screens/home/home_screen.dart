@@ -193,7 +193,12 @@ class _DesktopHome extends ConsumerWidget {
                             : '?';
                         return Tooltip(
                           message: acorn.name,
-                          child: InkWell(
+                          child: GestureDetector(
+                            onSecondaryTapDown: (details) {
+                              _showAcornSidebarMenu(
+                                  context, ref, acorn, details.globalPosition);
+                            },
+                            child: InkWell(
                             onTap: () {
                               ref.read(activeAcornProvider.notifier).state = acorn;
                               ref.read(activeConversationProvider.notifier)
@@ -230,6 +235,7 @@ class _DesktopHome extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                          ),
                           ),
                         );
                       }).toList(),
@@ -323,6 +329,62 @@ class _DesktopHome extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _showAcornSidebarMenu(
+      BuildContext context, WidgetRef ref, Acorn acorn, Offset position) {
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+          position.dx, position.dy, position.dx + 1, position.dy + 1),
+      items: [
+        const PopupMenuItem(value: 'edit', child: Text('Edit')),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Text('Delete', style: TextStyle(color: AppColors.error)),
+        ),
+      ],
+    ).then((value) async {
+      if (value == 'edit') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AcornEditorScreen(
+              existingAcorn: acorn,
+              onSaved: () {
+                ref.invalidate(allAcornsProvider);
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        );
+      } else if (value == 'delete') {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete Acorn?'),
+            content: Text(
+                'This will delete "${acorn.name}" but keep its conversations.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) {
+          await ref.read(acornRepositoryProvider).deleteAcorn(acorn.uuid);
+          ref.invalidate(allAcornsProvider);
+        }
+      }
+    });
   }
 
   Future<void> _createNewConversation(
@@ -453,6 +515,9 @@ class _ChatListView extends ConsumerWidget {
                 onTap: () => onConversationTap(conv),
                 onLongPress: () =>
                     _showConversationOptions(context, ref, conv),
+                onSecondaryTapDown: (details) =>
+                    _showConversationPopupMenu(
+                        context, ref, conv, details.globalPosition),
               );
             },
           );
@@ -514,6 +579,9 @@ class _ChatListView extends ConsumerWidget {
               onTap: () => onConversationTap(conv),
               onLongPress: () =>
                   _showConversationOptions(context, ref, conv),
+              onSecondaryTapDown: (details) =>
+                  _showConversationPopupMenu(
+                      context, ref, conv, details.globalPosition),
             );
           },
         );
@@ -523,87 +591,74 @@ class _ChatListView extends ConsumerWidget {
 
   void _showConversationOptions(
       BuildContext context, WidgetRef ref, dynamic conv) {
-    showModalBottomSheet(
+    // Mobile fallback — show menu at screen center
+    final box = context.findRenderObject() as RenderBox?;
+    final offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
+    _showConversationPopupMenu(context, ref, conv, offset);
+  }
+
+  void _showConversationPopupMenu(
+      BuildContext context, WidgetRef ref, dynamic conv, Offset position) {
+    showMenu<String>(
       context: context,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(
-                conv.isPinned
-                    ? Icons.push_pin_outlined
-                    : Icons.push_pin_rounded,
-                size: 20,
-              ),
-              title: Text(conv.isPinned ? 'Unpin' : 'Pin'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await ref
-                    .read(conversationRepositoryProvider)
-                    .togglePin(conv.uuid);
-                ref.invalidate(
-                    conversationsForAcornProvider(conv.acornId));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.archive_outlined, size: 20),
-              title: const Text('Archive'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await ref
-                    .read(conversationRepositoryProvider)
-                    .archiveConversation(conv.uuid);
-                if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
-                  ref.read(activeConversationProvider.notifier).state = null;
-                }
-                ref.invalidate(
-                    conversationsForAcornProvider(conv.acornId));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline_rounded,
-                  size: 20, color: AppColors.error),
-              title: const Text('Delete',
-                  style: TextStyle(color: AppColors.error)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (dlgCtx) => AlertDialog(
-                    title: const Text('Delete Conversation?'),
-                    content: const Text(
-                        'This will permanently delete this conversation and all its messages.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dlgCtx, false),
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(dlgCtx, true),
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error),
-                        child: const Text('Delete'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  await ref
-                      .read(conversationRepositoryProvider)
-                      .deleteConversation(conv.uuid);
-                  if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
-                    ref.read(activeConversationProvider.notifier).state = null;
-                  }
-                  ref.invalidate(
-                      conversationsForAcornProvider(conv.acornId));
-                }
-              },
-            ),
-          ],
+      position: RelativeRect.fromLTRB(
+          position.dx, position.dy, position.dx + 1, position.dy + 1),
+      items: [
+        PopupMenuItem(
+          value: 'pin',
+          child: Text(conv.isPinned ? 'Unpin' : 'Pin'),
         ),
-      ),
-    );
+        const PopupMenuItem(value: 'archive', child: Text('Archive')),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Text('Delete', style: TextStyle(color: AppColors.error)),
+        ),
+      ],
+    ).then((value) async {
+      if (value == 'pin') {
+        await ref
+            .read(conversationRepositoryProvider)
+            .togglePin(conv.uuid);
+        ref.invalidate(conversationsForAcornProvider(conv.acornId));
+      } else if (value == 'archive') {
+        await ref
+            .read(conversationRepositoryProvider)
+            .archiveConversation(conv.uuid);
+        if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
+          ref.read(activeConversationProvider.notifier).state = null;
+        }
+        ref.invalidate(conversationsForAcornProvider(conv.acornId));
+      } else if (value == 'delete') {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dlgCtx) => AlertDialog(
+            title: const Text('Delete Conversation?'),
+            content: const Text(
+                'This will permanently delete this conversation and all its messages.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dlgCtx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dlgCtx, true),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) {
+          await ref
+              .read(conversationRepositoryProvider)
+              .deleteConversation(conv.uuid);
+          if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
+            ref.read(activeConversationProvider.notifier).state = null;
+          }
+          ref.invalidate(conversationsForAcornProvider(conv.acornId));
+        }
+      }
+    });
   }
 }

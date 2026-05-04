@@ -40,10 +40,8 @@ final downloadProgressProvider = StreamProvider<DownloadProgress>((ref) {
   return modelService.downloadProgress;
 });
 
-final isModelLoadedProvider = Provider<bool>((ref) {
-  final inferenceService = ref.watch(inferenceServiceProvider);
-  return inferenceService.isModelLoaded;
-});
+/// Manually toggled after connect/disconnect to keep UI in sync.
+final isModelLoadedProvider = StateProvider<bool>((ref) => false);
 
 final isGeneratingProvider = Provider<bool>((ref) {
   final inferenceService = ref.watch(inferenceServiceProvider);

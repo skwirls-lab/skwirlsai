@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/snackbar_helper.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
@@ -71,18 +72,13 @@ Future<void> _exportChatHistory(BuildContext context, WidgetRef ref) async {
     await File(outputPath).writeAsString(jsonStr);
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Chat history exported successfully'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      showTopSnackBar(context, 'Chat history exported successfully',
+          backgroundColor: AppColors.success);
     }
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $e')),
-      );
+      showTopSnackBar(context, 'Export failed: $e',
+          backgroundColor: AppColors.error);
     }
   }
 }
@@ -128,18 +124,13 @@ Future<void> _clearAllData(BuildContext context, WidgetRef ref) async {
     ref.invalidate(allAcornsProvider);
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All data cleared'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      showTopSnackBar(context, 'All data cleared',
+          backgroundColor: AppColors.success);
     }
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to clear data: $e')),
-      );
+      showTopSnackBar(context, 'Failed to clear data: $e',
+          backgroundColor: AppColors.error);
     }
   }
 }
@@ -187,15 +178,13 @@ class SettingsScreen extends ConsumerWidget {
                     // Kick off first sync after sign-in
                     if (context.mounted) {
                       ref.read(syncServiceProvider).syncNow();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Signed in! Starting sync...')),
-                      );
+                      showTopSnackBar(context, 'Signed in! Starting sync...',
+                          backgroundColor: AppColors.success);
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Sign in failed: $e')),
-                      );
+                      showTopSnackBar(context, 'Sign in failed: $e',
+                          backgroundColor: AppColors.error);
                     }
                   }
                 },
@@ -315,6 +304,16 @@ class SettingsScreen extends ConsumerWidget {
             max: 8192,
             divisions: 81,
             onChanged: (v) => settingsNotifier.setMaxTokens(v.round()),
+          ),
+          _SliderTile(
+            title: 'Context Size',
+            subtitle: '${settings.contextSize} tokens'
+                '  (requires model reload)',
+            value: settings.contextSize.toDouble(),
+            min: 2048,
+            max: 32768,
+            divisions: 15,
+            onChanged: (v) => settingsNotifier.setContextSize(v.round()),
           ),
           ListTile(
             title: const Text('Reset to Defaults'),

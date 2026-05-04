@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/snackbar_helper.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/extensions.dart';
 import '../../../data/models/document.dart';
@@ -112,9 +113,7 @@ class DocumentListScreen extends ConsumerWidget {
         if (file.path == null) continue;
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ingesting ${file.name}...')),
-          );
+          showTopSnackBar(context, 'Ingesting ${file.name}...');
         }
 
         try {
@@ -125,25 +124,21 @@ class DocumentListScreen extends ConsumerWidget {
           successCount++;
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to ingest ${file.name}: $e')),
-            );
+            showTopSnackBar(context, 'Failed to ingest ${file.name}: $e',
+                backgroundColor: AppColors.error);
           }
         }
       }
 
       if (context.mounted && successCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$successCount document(s) added')),
-        );
+        showTopSnackBar(context, '$successCount document(s) added',
+            backgroundColor: AppColors.success);
         // Rebuild the document list
         (context as Element).markNeedsBuild();
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        showTopSnackBar(context, 'Error: $e', backgroundColor: AppColors.error);
       }
     }
   }

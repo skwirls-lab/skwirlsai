@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/snackbar_helper.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/message.dart';
 import '../../../data/services/inference_service.dart';
@@ -23,6 +25,12 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
+  static const _specialTokens = [
+    '<|im_end|>', '<|im_start|>',
+    '<end_of_turn>', '<start_of_turn>',
+    '<eos>', '<bos>',
+  ];
+
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
@@ -31,6 +39,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _agentModeEnabled = false;
   String _streamBuffer = '';
   bool _hasText = false;
+  List<String> _attachedFiles = []; // file names of just-attached docs
+  Map<String, String> _attachedFilePaths = {}; // name -> path
 
   @override
   void initState() {
@@ -172,6 +182,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   return _EmptyChatGreeting(acornName: activeAcorn?.name);
                 }
 
+                // Scroll to bottom whenever messages data arrives
+                // (covers initial load, returning to chat, new messages)
+                _scrollToBottom();
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -240,6 +254,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             .copyWith(color: AppColors.textTertiary),
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+          // Attached file chips
+          if (_attachedFiles.isNotEmpty)
+            Container(
+              color: AppColors.background,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 768),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 4, 28, 0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: _attachedFiles.map((name) {
+                        return Chip(
+                          avatar: const Icon(Icons.description_outlined,
+                              size: 16, color: AppColors.teal),
+                          label: Text(name, style: AppTextStyles.bodySmall),
+                          backgroundColor: AppColors.surfaceLight,
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          onDeleted: () {
+                            setState(() {
+                              _attachedFiles.remove(name);
+                              _attachedFilePaths.remove(name);
+                            });
+                          },
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: AppColors.teal.withOpacity(0.4)),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ),
@@ -351,13 +401,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (activeConv == null) return;
 
     _textController.clear();
+    final sentFiles = List<String>.from(_attachedFiles);
+    final sentFilePaths = Map<String, String>.from(_attachedFilePaths);
+    debugPrint('[RAG] _sendMessage: sentFiles=$sentFiles sentFilePaths=$sentFilePaths');
+    setState(() {
+      _attachedFiles.clear();
+      _attachedFilePaths.clear();
+    });
 
-    // Save user message
+    // Save user message (with attachment info)
     final convRepo = ref.read(conversationRepositoryProvider);
     await convRepo.addMessage(
       conversationId: activeConv.uuid,
       role: MessageRole.user,
       content: text,
+      attachmentIds: sentFiles.isNotEmpty ? sentFiles.join(',') : null,
     );
 
     // Refresh messages
@@ -365,7 +423,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ref.invalidate(conversationsForAcornProvider(activeConv.acornId));
 
     // Generate response
-    await _generateResponse(activeConv.uuid);
+    await _generateResponse(activeConv.uuid, attachedFilePaths: sentFilePaths);
 
     // Auto-title after first full exchange (user + assistant)
     final updatedMessages = await convRepo.getMessages(activeConv.uuid);
@@ -374,10 +432,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  Future<void> _generateResponse(String conversationId) async {
+  Future<void> _generateResponse(String conversationId,
+      {Map<String, String> attachedFilePaths = const {}}) async {
     final inferenceService = ref.read(inferenceServiceProvider);
-    if (!inferenceService.isModelLoaded) {
-      _showSnackBar('No model connected. Go to Settings > Model to connect.');
+    final modelLoaded = ref.read(isModelLoadedProvider);
+    if (!modelLoaded || !inferenceService.isModelLoaded) {
+      _showSnackBar('No model connected. Go to Models to load one.');
       return;
     }
 
@@ -403,26 +463,66 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           content: m.content,
         )).toList();
 
+    // If files were attached with this prompt, read their content directly
+    String? fileContext;
+    if (attachedFilePaths.isNotEmpty) {
+      final buf = StringBuffer();
+      buf.writeln('[Attached file contents:]');
+      for (final entry in attachedFilePaths.entries) {
+        try {
+          final file = File(entry.value);
+          debugPrint('[RAG] Reading file: ${entry.value} exists=${await file.exists()}');
+          final content = await file.readAsString();
+          debugPrint('[RAG] File "${entry.key}" read OK, ${content.length} chars');
+          buf.writeln('--- File: ${entry.key} ---');
+          // Limit per file to avoid blowing the context window
+          final trimmed = content.length > 8000
+              ? '${content.substring(0, 8000)}\n[...truncated]'
+              : content;
+          buf.writeln(trimmed);
+        } catch (e) {
+          debugPrint('[RAG] File read error for "${entry.key}": $e');
+          buf.writeln('--- File: ${entry.key} (read error: $e) ---');
+        }
+      }
+      buf.writeln('[End of attached files]');
+      fileContext = buf.toString();
+      debugPrint('[RAG] fileContext length: ${fileContext.length}');
+    }
+
     // If RAG is enabled, search documents for relevant context
     String? ragContext;
-    if (activeAcorn != null && activeAcorn.ragEnabled == true) {
-      final isar = ref.read(isarProvider);
-      final ragService = RagService(isar: isar);
-      final lastUserMsg = messages.lastWhere(
-        (m) => m.role == MessageRole.user,
-        orElse: () => messages.last,
-      );
-      final results = await ragService.searchBM25(
-        query: lastUserMsg.content,
-        acornId: activeAcorn.uuid,
-      );
-      if (results.isNotEmpty) {
-        ragContext = ragService.buildRagContext(results);
+    if (activeAcorn != null) {
+      final freshAcorn = await ref.read(acornRepositoryProvider).getAcorn(activeAcorn.uuid);
+      if (freshAcorn != null && freshAcorn.ragEnabled) {
+        final isar = ref.read(isarProvider);
+        final ragService = RagService(isar: isar);
+        final lastUserMsg = messages.lastWhere(
+          (m) => m.role == MessageRole.user,
+          orElse: () => messages.last,
+        );
+        final results = await ragService.searchBM25(
+          query: lastUserMsg.content,
+          acornId: activeAcorn.uuid,
+        );
+        if (results.isNotEmpty) {
+          ragContext = ragService.buildRagContext(results);
+        }
       }
     }
 
+    // Combine file context with RAG context
+    final combinedContext = [
+      if (fileContext != null) fileContext,
+      if (ragContext != null) ragContext,
+    ].join('\n');
+
+    debugPrint('[RAG] combinedContext length: ${combinedContext.length}');
+
     // Build system prompt: acorn prompt + RAG context + app context
-    final systemPrompt = _buildSystemPrompt(activeAcorn, settings, ragContext: ragContext);
+    final systemPrompt = _buildSystemPrompt(activeAcorn, settings,
+        ragContext: combinedContext.isNotEmpty ? combinedContext : null);
+    debugPrint('[RAG] systemPrompt length: ${systemPrompt.length}');
 
     setState(() {
       _isStreaming = true;
@@ -443,23 +543,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _scrollToBottom();
       }
 
+      // Strip any leaked special tokens from the final response
+      var finalText = _streamBuffer;
+      for (final tok in _specialTokens) {
+        finalText = finalText.replaceAll(tok, '');
+      }
+      finalText = finalText.trim();
+
       // Save assistant message
-      if (_streamBuffer.isNotEmpty) {
+      if (finalText.isNotEmpty) {
         await convRepo.addMessage(
           conversationId: conversationId,
           role: MessageRole.assistant,
-          content: _streamBuffer,
+          content: finalText,
         );
+      } else {
+        _showSnackBar('Model returned an empty response. '
+            'Try a shorter prompt or increase the context size in Settings.');
       }
 
       ref.invalidate(messagesForConversationProvider(conversationId));
+      // Wait for the provider to rebuild before hiding the streaming bubble
+      await Future.delayed(const Duration(milliseconds: 100));
     } catch (e) {
-      _showSnackBar('Generation error: $e');
+      final msg = e.toString();
+      if (msg.contains('Context full') || msg.contains('Context limit') ||
+          msg.contains('Prompt too large')) {
+        _showSnackBar('Prompt too long for current context window. '
+            'Increase Context Size in Settings or start a new conversation.');
+      } else {
+        _showSnackBar('Generation error: $msg');
+      }
     } finally {
       setState(() {
         _isStreaming = false;
         _streamBuffer = '';
       });
+      _scrollToBottom();
     }
   }
 
@@ -584,14 +704,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() => _isStreaming = false);
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool animate = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
+      if (!_scrollController.hasClients) return;
+      final target = _scrollController.position.maxScrollExtent;
+      if (animate) {
+        _scrollController.animateTo(target,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut);
+      } else {
+        _scrollController.jumpTo(target);
       }
     });
   }
@@ -634,11 +756,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           activeAcorn.ragEnabled = true;
           final acornRepo = ref.read(acornRepositoryProvider);
           await acornRepo.updateAcorn(activeAcorn);
+          // Refresh the provider so _generateResponse sees ragEnabled=true
+          ref.invalidate(allAcornsProvider);
         }
 
+        // Show file chips above the input
+        setState(() {
+          for (final f in result.files) {
+            if (f.name.isNotEmpty && !_attachedFiles.contains(f.name)) {
+              _attachedFiles.add(f.name);
+              if (f.path != null) _attachedFilePaths[f.name] = f.path!;
+            }
+          }
+        });
+
         _showSnackBar(
-          '$ingested document${ingested > 1 ? 's' : ''} added — '
-          'context will be used in this conversation',
+          '$ingested file${ingested > 1 ? 's' : ''} attached',
         );
       }
     } catch (e) {
@@ -724,11 +857,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _showSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    }
+    if (mounted) showTopSnackBar(context, message);
   }
 }
 

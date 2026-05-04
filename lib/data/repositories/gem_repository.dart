@@ -27,9 +27,20 @@ class AcornRepository {
     Log.i(_tag, 'Created ${defaults.length} default acorns');
   }
 
-  /// Get all acorns
+  /// Get all acorns, with General Assistant first, then defaults, then custom
   Future<List<Acorn>> getAllAcorns() async {
-    return _isar.acorns.where().sortByName().findAll();
+    final all = await _isar.acorns.where().findAll();
+    all.sort((a, b) {
+      // General Assistant always first
+      if (a.uuid == 'acorn-general-assistant') return -1;
+      if (b.uuid == 'acorn-general-assistant') return 1;
+      // Defaults before custom
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      // Within same category, sort by name
+      return a.name.compareTo(b.name);
+    });
+    return all;
   }
 
   /// Get an acorn by UUID
@@ -86,12 +97,14 @@ class AcornRepository {
     Log.i(_tag, 'Updated acorn: ${acorn.name}');
   }
 
-  /// Delete an acorn (only if not a default)
+  /// Delete an acorn (requires at least one acorn to remain)
   Future<bool> deleteAcorn(String uuid) async {
     final acorn = await getAcorn(uuid);
     if (acorn == null) return false;
-    if (acorn.isDefault) {
-      Log.w(_tag, 'Cannot delete default acorn: ${acorn.name}');
+
+    final count = await _isar.acorns.count();
+    if (count <= 1) {
+      Log.w(_tag, 'Cannot delete last acorn');
       return false;
     }
 

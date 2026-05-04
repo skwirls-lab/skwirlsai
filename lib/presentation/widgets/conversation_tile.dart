@@ -9,6 +9,7 @@ class ConversationTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final void Function(TapDownDetails)? onSecondaryTapDown;
 
   const ConversationTile({
     super.key,
@@ -16,11 +17,14 @@ class ConversationTile extends StatelessWidget {
     this.isSelected = false,
     required this.onTap,
     this.onLongPress,
+    this.onSecondaryTapDown,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
+      onSecondaryTapDown: onSecondaryTapDown,
+      child: InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(10),
@@ -69,6 +73,7 @@ class ConversationTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
