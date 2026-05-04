@@ -16,37 +16,37 @@ class ApiConstants {
       'https://www.googleapis.com/calendar/v3';
   static const String gmailApiBase = 'https://www.googleapis.com/gmail/v1';
 
-  // Hugging Face model repository URLs (GGUF Q4_K_M quantized)
+  // Hugging Face model repository URLs — Gemma 4 GGUF (unsloth quantized)
   static const Map<String, ModelDownloadInfo> gemma4Models = {
-    'gemma-2-2b': ModelDownloadInfo(
-      id: 'gemma-2-2b',
-      displayName: 'Gemma 2 2B Instruct (Q4_K_M)',
-      repoId: 'bartowski/gemma-2-2b-it-GGUF',
-      fileName: 'gemma-2-2b-it-Q4_K_M.gguf',
-      fileSizeMB: 1630,
+    'gemma-4-e2b': ModelDownloadInfo(
+      id: 'gemma-4-e2b',
+      displayName: 'Gemma 4 E2B Instruct (Q4_K_M)',
+      repoId: 'unsloth/gemma-4-E2B-it-GGUF',
+      fileName: 'gemma-4-E2B-it-Q4_K_M.gguf',
+      fileSizeMB: 2960,
       minRamMB: 4096,
       minVramMB: 0,
       description: 'Lightweight — good for low-RAM devices',
     ),
-    'gemma-2-9b': ModelDownloadInfo(
-      id: 'gemma-2-9b',
-      displayName: 'Gemma 2 9B Instruct (Q4_K_M)',
-      repoId: 'bartowski/gemma-2-9b-it-GGUF',
-      fileName: 'gemma-2-9b-it-Q4_K_M.gguf',
-      fileSizeMB: 5490,
+    'gemma-4-e4b': ModelDownloadInfo(
+      id: 'gemma-4-e4b',
+      displayName: 'Gemma 4 E4B Instruct (Q4_K_M)',
+      repoId: 'unsloth/gemma-4-E4B-it-GGUF',
+      fileName: 'gemma-4-E4B-it-Q4_K_M.gguf',
+      fileSizeMB: 4745,
       minRamMB: 8192,
       minVramMB: 0,
       description: 'Balanced quality and speed for 8GB+ RAM',
     ),
-    'gemma-2-27b': ModelDownloadInfo(
-      id: 'gemma-2-27b',
-      displayName: 'Gemma 2 27B Instruct (Q4_K_M)',
-      repoId: 'bartowski/gemma-2-27b-it-GGUF',
-      fileName: 'gemma-2-27b-it-Q4_K_M.gguf',
-      fileSizeMB: 16700,
+    'gemma-4-26b-a4b': ModelDownloadInfo(
+      id: 'gemma-4-26b-a4b',
+      displayName: 'Gemma 4 26B-A4B Instruct (Q4_K_M)',
+      repoId: 'unsloth/gemma-4-26B-A4B-it-GGUF',
+      fileName: 'gemma-4-26B-A4B-it-UD-Q4_K_M.gguf',
+      fileSizeMB: 16080,
       minRamMB: 20480,
       minVramMB: 0,
-      description: 'High quality — needs 20GB+ RAM',
+      description: 'MoE — 26B total, 4B active. Needs 20GB+ RAM',
     ),
   };
 

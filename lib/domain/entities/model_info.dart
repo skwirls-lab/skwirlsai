@@ -152,10 +152,10 @@ class HardwareInfo {
   });
 
   String get recommendedModelId {
-    if (totalRamMB < 4096) return 'gemma-2-2b';
-    if (totalRamMB < 8192) return 'gemma-2-2b';
-    if (totalRamMB < 16384) return 'gemma-2-9b';
-    return 'gemma-2-27b';
+    if (totalRamMB < 4096) return 'gemma-4-e2b';
+    if (totalRamMB < 8192) return 'gemma-4-e2b';
+    if (totalRamMB < 20480) return 'gemma-4-e4b';
+    return 'gemma-4-26b-a4b';
   }
 
   String get ramDisplay => '${(totalRamMB / 1024).toStringAsFixed(1)} GB';
