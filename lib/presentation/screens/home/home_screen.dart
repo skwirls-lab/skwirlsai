@@ -26,13 +26,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeActiveGem();
+    _initializeActiveAcorn();
   }
 
-  Future<void> _initializeActiveGem() async {
-    final gemRepo = ref.read(gemRepositoryProvider);
-    final defaultGem = await gemRepo.getDefaultGem();
-    ref.read(activeGemProvider.notifier).state = defaultGem;
+  Future<void> _initializeActiveAcorn() async {
+    final acornRepo = ref.read(acornRepositoryProvider);
+    final defaultAcorn = await acornRepo.getDefaultAcorn();
+    ref.read(activeAcornProvider.notifier).state = defaultAcorn;
   }
 
   @override
@@ -69,7 +69,7 @@ class _MobileHome extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const ChatScreen()),
             );
           }),
-          const GemListScreen(),
+          const AcornListScreen(),
           const SettingsScreen(),
         ],
       ),
@@ -90,7 +90,7 @@ class _MobileHome extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.auto_awesome_outlined, size: 20),
             selectedIcon: Icon(Icons.auto_awesome_rounded, size: 20),
-            label: 'Gems',
+            label: 'Acorns',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined, size: 20),
@@ -113,11 +113,11 @@ class _MobileHome extends ConsumerWidget {
 
   Future<void> _createNewConversation(
       BuildContext context, WidgetRef ref) async {
-    final activeGem = ref.read(activeGemProvider);
-    if (activeGem == null) return;
+    final activeAcorn = ref.read(activeAcornProvider);
+    if (activeAcorn == null) return;
 
     final convRepo = ref.read(conversationRepositoryProvider);
-    final conv = await convRepo.createConversation(gemId: activeGem.uuid);
+    final conv = await convRepo.createConversation(acornId: activeAcorn.uuid);
 
     ref.read(activeConversationProvider.notifier).state = conv;
     if (context.mounted) {
@@ -134,13 +134,13 @@ class _DesktopHome extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeGem = ref.watch(activeGemProvider);
-    final gemsAsync = ref.watch(allGemsProvider);
+    final activeAcorn = ref.watch(activeAcornProvider);
+    final acornsAsync = ref.watch(allAcornsProvider);
 
     return Scaffold(
       body: Row(
         children: [
-          // Gem sidebar
+          // Acorn sidebar
           Container(
             width: 64,
             decoration: const BoxDecoration(
@@ -179,23 +179,23 @@ class _DesktopHome extends ConsumerWidget {
                   color: AppColors.divider,
                 ),
                 const SizedBox(height: 8),
-                // Gem icons — monochrome first-letter style
+                // Acorn icons — monochrome first-letter style
                 Expanded(
-                  child: gemsAsync.when(
+                  child: acornsAsync.when(
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
-                    data: (gems) => ListView(
+                    data: (acorns) => ListView(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      children: gems.map((gem) {
-                        final isActive = activeGem?.uuid == gem.uuid;
-                        final letter = gem.name.isNotEmpty
-                            ? gem.name[0].toUpperCase()
+                      children: acorns.map((acorn) {
+                        final isActive = activeAcorn?.uuid == acorn.uuid;
+                        final letter = acorn.name.isNotEmpty
+                            ? acorn.name[0].toUpperCase()
                             : '?';
                         return Tooltip(
-                          message: gem.name,
+                          message: acorn.name,
                           child: InkWell(
                             onTap: () {
-                              ref.read(activeGemProvider.notifier).state = gem;
+                              ref.read(activeAcornProvider.notifier).state = acorn;
                               ref.read(activeConversationProvider.notifier)
                                   .state = null;
                             },
@@ -236,22 +236,22 @@ class _DesktopHome extends ConsumerWidget {
                     ),
                   ),
                 ),
-                // Create new gem
+                // Create new acorn
                 IconButton(
                   icon: Icon(Icons.add_rounded,
                       size: 20, color: AppColors.textTertiary),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => GemEditorScreen(
+                      builder: (_) => AcornEditorScreen(
                         onSaved: () {
-                          ref.invalidate(allGemsProvider);
+                          ref.invalidate(allAcornsProvider);
                           Navigator.pop(context);
                         },
                       ),
                     ),
                   ),
-                  tooltip: 'Create Gem',
+                  tooltip: 'Create Acorn',
                 ),
                 // Settings
                 IconButton(
@@ -278,14 +278,14 @@ class _DesktopHome extends ConsumerWidget {
             ),
             child: Column(
               children: [
-                // Header with gem name and new chat button
+                // Header with acorn name and new chat button
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          activeGem?.name ?? 'Chats',
+                          activeAcorn?.name ?? 'Chats',
                           style: AppTextStyles.body.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -327,11 +327,11 @@ class _DesktopHome extends ConsumerWidget {
 
   Future<void> _createNewConversation(
       BuildContext context, WidgetRef ref) async {
-    final activeGem = ref.read(activeGemProvider);
-    if (activeGem == null) return;
+    final activeAcorn = ref.read(activeAcornProvider);
+    if (activeAcorn == null) return;
 
     final convRepo = ref.read(conversationRepositoryProvider);
-    final conv = await convRepo.createConversation(gemId: activeGem.uuid);
+    final conv = await convRepo.createConversation(acornId: activeAcorn.uuid);
     ref.read(activeConversationProvider.notifier).state = conv;
   }
 }
@@ -415,17 +415,17 @@ class _ChatListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeGem = ref.watch(activeGemProvider);
+    final activeAcorn = ref.watch(activeAcornProvider);
     final activeConv = ref.watch(activeConversationProvider);
     final searchQuery = ref.watch(_searchQueryProvider);
 
-    if (activeGem == null) {
+    if (activeAcorn == null) {
       return const Center(
-        child: Text('Select a Gem to start', style: AppTextStyles.body),
+        child: Text('Select an Acorn to start', style: AppTextStyles.body),
       );
     }
 
-    // If searching, use search results; otherwise use gem conversations
+    // If searching, use search results; otherwise use acorn conversations
     if (searchQuery.isNotEmpty) {
       final searchAsync = ref.watch(searchResultsProvider(searchQuery));
       return searchAsync.when(
@@ -461,7 +461,7 @@ class _ChatListView extends ConsumerWidget {
     }
 
     final conversationsAsync =
-        ref.watch(conversationsForGemProvider(activeGem.uuid));
+        ref.watch(conversationsForAcornProvider(activeAcorn.uuid));
 
     return conversationsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -544,7 +544,7 @@ class _ChatListView extends ConsumerWidget {
                     .read(conversationRepositoryProvider)
                     .togglePin(conv.uuid);
                 ref.invalidate(
-                    conversationsForGemProvider(conv.gemId));
+                    conversationsForAcornProvider(conv.acornId));
               },
             ),
             ListTile(
@@ -559,7 +559,7 @@ class _ChatListView extends ConsumerWidget {
                   ref.read(activeConversationProvider.notifier).state = null;
                 }
                 ref.invalidate(
-                    conversationsForGemProvider(conv.gemId));
+                    conversationsForAcornProvider(conv.acornId));
               },
             ),
             ListTile(
@@ -597,7 +597,7 @@ class _ChatListView extends ConsumerWidget {
                     ref.read(activeConversationProvider.notifier).state = null;
                   }
                   ref.invalidate(
-                      conversationsForGemProvider(conv.gemId));
+                      conversationsForAcornProvider(conv.acornId));
                 }
               },
             ),

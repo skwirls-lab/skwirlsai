@@ -17,17 +17,17 @@ import '../models/model_management_screen.dart';
 Future<void> _exportChatHistory(BuildContext context, WidgetRef ref) async {
   try {
     final convRepo = ref.read(conversationRepositoryProvider);
-    final gemRepo = ref.read(gemRepositoryProvider);
-    final gems = await gemRepo.getAllGems();
+    final acornRepo = ref.read(acornRepositoryProvider);
+    final acorns = await acornRepo.getAllAcorns();
 
     final export = <String, dynamic>{
       'appVersion': AppConstants.appVersion,
       'exportedAt': DateTime.now().toIso8601String(),
-      'gems': [],
+      'acorns': [],
     };
 
-    for (final gem in gems) {
-      final conversations = await convRepo.getConversationsForGem(gem.uuid);
+    for (final acorn in acorns) {
+      final conversations = await convRepo.getConversationsForAcorn(acorn.uuid);
       final convList = <Map<String, dynamic>>[];
 
       for (final conv in conversations) {
@@ -46,9 +46,9 @@ Future<void> _exportChatHistory(BuildContext context, WidgetRef ref) async {
         });
       }
 
-      (export['gems'] as List).add({
-        'name': gem.name,
-        'systemPrompt': gem.systemPrompt,
+      (export['acorns'] as List).add({
+        'name': acorn.name,
+        'systemPrompt': acorn.systemPrompt,
         'conversations': convList,
       });
     }
@@ -91,9 +91,9 @@ Future<void> _clearAllData(BuildContext context, WidgetRef ref) async {
     builder: (ctx) => AlertDialog(
       title: const Text('Clear All Data?'),
       content: const Text(
-          'This will permanently delete ALL conversations, messages, and custom Gems. '
+          'This will permanently delete ALL conversations, messages, and custom Acorns. '
           'This action cannot be undone.\n\n'
-          'Default Gems will be restored.'),
+          'Default Acorns will be restored.'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
@@ -116,14 +116,14 @@ Future<void> _clearAllData(BuildContext context, WidgetRef ref) async {
       await isar.clear();
     });
 
-    // Re-seed default gems
-    final gemRepo = ref.read(gemRepositoryProvider);
-    await gemRepo.initializeDefaults();
+    // Re-seed default acorns
+    final acornRepo = ref.read(acornRepositoryProvider);
+    await acornRepo.initializeDefaults();
 
     // Reset state
     ref.read(activeConversationProvider.notifier).state = null;
-    ref.read(activeGemProvider.notifier).state = null;
-    ref.invalidate(allGemsProvider);
+    ref.read(activeAcornProvider.notifier).state = null;
+    ref.invalidate(allAcornsProvider);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

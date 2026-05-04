@@ -146,9 +146,9 @@ class ToolRegistry {
             description: 'Search query',
             required: true,
           ),
-          'gem_id': const ToolParameter(
+          'acorn_id': const ToolParameter(
             type: 'string',
-            description: 'Gem ID to search within',
+            description: 'Acorn ID to search within',
             required: true,
           ),
         },
@@ -156,7 +156,7 @@ class ToolRegistry {
       (args) async {
         final results = await _ragService.search(
           query: args['query'] as String,
-          gemId: args['gem_id'] as String,
+          acornId: args['acorn_id'] as String,
         );
         return ToolResult(
           toolName: 'search_svl_docs',

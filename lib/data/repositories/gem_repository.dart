@@ -3,42 +3,42 @@ import 'package:uuid/uuid.dart';
 import '../../core/utils/logger.dart';
 import '../models/gem.dart';
 
-class GemRepository {
-  static const _tag = 'GemRepo';
+class AcornRepository {
+  static const _tag = 'AcornRepo';
   final Isar _isar;
   final _uuid = const Uuid();
 
-  GemRepository({required Isar isar}) : _isar = isar;
+  AcornRepository({required Isar isar}) : _isar = isar;
 
-  /// Initialize default gems on first run
+  /// Initialize default acorns on first run
   Future<void> initializeDefaults() async {
-    final count = await _isar.gems.count();
+    final count = await _isar.acorns.count();
     if (count > 0) return;
 
-    Log.i(_tag, 'Initializing default gems...');
-    final defaults = Gem.defaults;
+    Log.i(_tag, 'Initializing default acorns...');
+    final defaults = Acorn.defaults;
 
     await _isar.writeTxn(() async {
-      for (final gem in defaults) {
-        await _isar.gems.put(gem);
+      for (final acorn in defaults) {
+        await _isar.acorns.put(acorn);
       }
     });
 
-    Log.i(_tag, 'Created ${defaults.length} default gems');
+    Log.i(_tag, 'Created ${defaults.length} default acorns');
   }
 
-  /// Get all gems
-  Future<List<Gem>> getAllGems() async {
-    return _isar.gems.where().sortByName().findAll();
+  /// Get all acorns
+  Future<List<Acorn>> getAllAcorns() async {
+    return _isar.acorns.where().sortByName().findAll();
   }
 
-  /// Get a gem by UUID
-  Future<Gem?> getGem(String uuid) async {
-    return _isar.gems.filter().uuidEqualTo(uuid).findFirst();
+  /// Get an acorn by UUID
+  Future<Acorn?> getAcorn(String uuid) async {
+    return _isar.acorns.filter().uuidEqualTo(uuid).findFirst();
   }
 
-  /// Create a new gem
-  Future<Gem> createGem({
+  /// Create a new acorn
+  Future<Acorn> createAcorn({
     required String name,
     String systemPrompt = '',
     String icon = '💎',
@@ -51,7 +51,7 @@ class GemRepository {
     int? maxTokens,
   }) async {
     final now = DateTime.now();
-    final gem = Gem()
+    final acorn = Acorn()
       ..uuid = _uuid.v4()
       ..name = name
       ..systemPrompt = systemPrompt
@@ -67,57 +67,57 @@ class GemRepository {
       ..maxTokens = maxTokens;
 
     await _isar.writeTxn(() async {
-      await _isar.gems.put(gem);
+      await _isar.acorns.put(acorn);
     });
 
-    Log.i(_tag, 'Created gem: $name (${gem.uuid})');
-    return gem;
+    Log.i(_tag, 'Created acorn: $name (${acorn.uuid})');
+    return acorn;
   }
 
-  /// Update an existing gem
-  Future<void> updateGem(Gem gem) async {
-    gem.updatedAt = DateTime.now();
-    gem.syncVersion++;
+  /// Update an existing acorn
+  Future<void> updateAcorn(Acorn acorn) async {
+    acorn.updatedAt = DateTime.now();
+    acorn.syncVersion++;
 
     await _isar.writeTxn(() async {
-      await _isar.gems.put(gem);
+      await _isar.acorns.put(acorn);
     });
 
-    Log.i(_tag, 'Updated gem: ${gem.name}');
+    Log.i(_tag, 'Updated acorn: ${acorn.name}');
   }
 
-  /// Delete a gem (only if not a default)
-  Future<bool> deleteGem(String uuid) async {
-    final gem = await getGem(uuid);
-    if (gem == null) return false;
-    if (gem.isDefault) {
-      Log.w(_tag, 'Cannot delete default gem: ${gem.name}');
+  /// Delete an acorn (only if not a default)
+  Future<bool> deleteAcorn(String uuid) async {
+    final acorn = await getAcorn(uuid);
+    if (acorn == null) return false;
+    if (acorn.isDefault) {
+      Log.w(_tag, 'Cannot delete default acorn: ${acorn.name}');
       return false;
     }
 
     await _isar.writeTxn(() async {
-      await _isar.gems.delete(gem.id);
+      await _isar.acorns.delete(acorn.id);
     });
 
-    Log.i(_tag, 'Deleted gem: ${gem.name}');
+    Log.i(_tag, 'Deleted acorn: ${acorn.name}');
     return true;
   }
 
-  /// Get the "General Assistant" default gem
-  Future<Gem> getDefaultGem() async {
-    final gem = await _isar.gems
+  /// Get the "General Assistant" default acorn
+  Future<Acorn> getDefaultAcorn() async {
+    final acorn = await _isar.acorns
         .filter()
-        .uuidEqualTo('gem-general-assistant')
+        .uuidEqualTo('acorn-general-assistant')
         .findFirst();
 
-    if (gem != null) return gem;
+    if (acorn != null) return acorn;
 
-    // Fallback: return first gem
-    final all = await getAllGems();
+    // Fallback: return first acorn
+    final all = await getAllAcorns();
     if (all.isNotEmpty) return all.first;
 
     // Last resort: create defaults and return
     await initializeDefaults();
-    return (await getAllGems()).first;
+    return (await getAllAcorns()).first;
   }
 }

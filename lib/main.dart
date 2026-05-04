@@ -10,7 +10,7 @@ import 'data/models/gem.dart';
 import 'data/models/document.dart';
 import 'data/models/attachment.dart';
 import 'data/models/sync_queue.dart';
-import 'data/repositories/gem_repository.dart';
+import 'data/repositories/gem_repository.dart'; // AcornRepository
 import 'data/services/auth_service.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/database_provider.dart';
@@ -25,7 +25,7 @@ Future<void> main() async {
     [
       ConversationSchema,
       MessageSchema,
-      GemSchema,
+      AcornSchema,
       DocumentSchema,
       ChunkSchema,
       AttachmentSchema,
@@ -35,9 +35,9 @@ Future<void> main() async {
     name: 'skwirlsai',
   );
 
-  // Initialize default gems
-  final gemRepo = GemRepository(isar: isar);
-  await gemRepo.initializeDefaults();
+  // Initialize default acorns
+  final acornRepo = AcornRepository(isar: isar);
+  await acornRepo.initializeDefaults();
 
   // Initialize shared preferences
   final prefs = await SharedPreferences.getInstance();

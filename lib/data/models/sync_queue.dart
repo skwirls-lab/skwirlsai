@@ -6,7 +6,7 @@ part 'sync_queue.g.dart';
 class SyncQueueItem {
   Id id = Isar.autoIncrement;
 
-  /// Type of entity: 'conversation', 'message', 'gem', 'document'
+  /// Type of entity: 'conversation', 'message', 'acorn', 'document'
   late String entityType;
 
   /// UUID of the entity

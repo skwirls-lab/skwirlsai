@@ -17,15 +17,15 @@ const ConversationSchema = CollectionSchema(
   name: r'Conversation',
   id: 7261696243536555740,
   properties: {
-    r'createdAt': PropertySchema(
+    r'acornId': PropertySchema(
       id: 0,
+      name: r'acornId',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 1,
       name: r'createdAt',
       type: IsarType.dateTime,
-    ),
-    r'gemId': PropertySchema(
-      id: 1,
-      name: r'gemId',
-      type: IsarType.string,
     ),
     r'isArchived': PropertySchema(
       id: 2,
@@ -87,14 +87,14 @@ const ConversationSchema = CollectionSchema(
         )
       ],
     ),
-    r'gemId': IndexSchema(
-      id: -4673659355794162112,
-      name: r'gemId',
+    r'acornId': IndexSchema(
+      id: -700436967602557961,
+      name: r'acornId',
       unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
-          name: r'gemId',
+          name: r'acornId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -115,7 +115,7 @@ int _conversationEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.gemId.length * 3;
+  bytesCount += 3 + object.acornId.length * 3;
   bytesCount += 3 + object.lastModifiedBy.length * 3;
   bytesCount += 3 + object.title.length * 3;
   bytesCount += 3 + object.uuid.length * 3;
@@ -128,8 +128,8 @@ void _conversationSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.createdAt);
-  writer.writeString(offsets[1], object.gemId);
+  writer.writeString(offsets[0], object.acornId);
+  writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeBool(offsets[2], object.isArchived);
   writer.writeBool(offsets[3], object.isPinned);
   writer.writeString(offsets[4], object.lastModifiedBy);
@@ -147,8 +147,8 @@ Conversation _conversationDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Conversation();
-  object.createdAt = reader.readDateTime(offsets[0]);
-  object.gemId = reader.readString(offsets[1]);
+  object.acornId = reader.readString(offsets[0]);
+  object.createdAt = reader.readDateTime(offsets[1]);
   object.id = id;
   object.isArchived = reader.readBool(offsets[2]);
   object.isPinned = reader.readBool(offsets[3]);
@@ -169,9 +169,9 @@ P _conversationDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTime(offset)) as P;
-    case 1:
       return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readDateTime(offset)) as P;
     case 2:
       return (reader.readBool(offset)) as P;
     case 3:
@@ -329,45 +329,45 @@ extension ConversationQueryWhere
     });
   }
 
-  QueryBuilder<Conversation, Conversation, QAfterWhereClause> gemIdEqualTo(
-      String gemId) {
+  QueryBuilder<Conversation, Conversation, QAfterWhereClause> acornIdEqualTo(
+      String acornId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'gemId',
-        value: [gemId],
+        indexName: r'acornId',
+        value: [acornId],
       ));
     });
   }
 
-  QueryBuilder<Conversation, Conversation, QAfterWhereClause> gemIdNotEqualTo(
-      String gemId) {
+  QueryBuilder<Conversation, Conversation, QAfterWhereClause> acornIdNotEqualTo(
+      String acornId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
+              indexName: r'acornId',
               lower: [],
-              upper: [gemId],
+              upper: [acornId],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
-              lower: [gemId],
+              indexName: r'acornId',
+              lower: [acornId],
               includeLower: false,
               upper: [],
             ));
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
-              lower: [gemId],
+              indexName: r'acornId',
+              lower: [acornId],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
+              indexName: r'acornId',
               lower: [],
-              upper: [gemId],
+              upper: [acornId],
               includeUpper: false,
             ));
       }
@@ -377,6 +377,142 @@ extension ConversationQueryWhere
 
 extension ConversationQueryFilter
     on QueryBuilder<Conversation, Conversation, QFilterCondition> {
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'acornId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'acornId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'acornId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
+      acornIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'acornId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
       createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -429,140 +565,6 @@ extension ConversationQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition> gemIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
-      gemIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition> gemIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition> gemIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'gemId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
-      gemIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition> gemIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition> gemIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition> gemIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'gemId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
-      gemIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'gemId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterFilterCondition>
-      gemIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'gemId',
-        value: '',
       ));
     });
   }
@@ -1239,6 +1241,18 @@ extension ConversationQueryLinks
 
 extension ConversationQuerySortBy
     on QueryBuilder<Conversation, Conversation, QSortBy> {
+  QueryBuilder<Conversation, Conversation, QAfterSortBy> sortByAcornId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterSortBy> sortByAcornIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Conversation, Conversation, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1248,18 +1262,6 @@ extension ConversationQuerySortBy
   QueryBuilder<Conversation, Conversation, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterSortBy> sortByGemId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterSortBy> sortByGemIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.desc);
     });
   }
 
@@ -1367,6 +1369,18 @@ extension ConversationQuerySortBy
 
 extension ConversationQuerySortThenBy
     on QueryBuilder<Conversation, Conversation, QSortThenBy> {
+  QueryBuilder<Conversation, Conversation, QAfterSortBy> thenByAcornId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Conversation, Conversation, QAfterSortBy> thenByAcornIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Conversation, Conversation, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1376,18 +1390,6 @@ extension ConversationQuerySortThenBy
   QueryBuilder<Conversation, Conversation, QAfterSortBy> thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterSortBy> thenByGemId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Conversation, Conversation, QAfterSortBy> thenByGemIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.desc);
     });
   }
 
@@ -1507,16 +1509,16 @@ extension ConversationQuerySortThenBy
 
 extension ConversationQueryWhereDistinct
     on QueryBuilder<Conversation, Conversation, QDistinct> {
-  QueryBuilder<Conversation, Conversation, QDistinct> distinctByCreatedAt() {
+  QueryBuilder<Conversation, Conversation, QDistinct> distinctByAcornId(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'createdAt');
+      return query.addDistinctBy(r'acornId', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Conversation, Conversation, QDistinct> distinctByGemId(
-      {bool caseSensitive = true}) {
+  QueryBuilder<Conversation, Conversation, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'gemId', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'createdAt');
     });
   }
 
@@ -1581,15 +1583,15 @@ extension ConversationQueryProperty
     });
   }
 
-  QueryBuilder<Conversation, DateTime, QQueryOperations> createdAtProperty() {
+  QueryBuilder<Conversation, String, QQueryOperations> acornIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'createdAt');
+      return query.addPropertyName(r'acornId');
     });
   }
 
-  QueryBuilder<Conversation, String, QQueryOperations> gemIdProperty() {
+  QueryBuilder<Conversation, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'gemId');
+      return query.addPropertyName(r'createdAt');
     });
   }
 

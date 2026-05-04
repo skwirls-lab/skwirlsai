@@ -15,13 +15,13 @@ class ConversationRepository {
 
   /// Create a new conversation
   Future<Conversation> createConversation({
-    required String gemId,
+    required String acornId,
     String title = 'New Chat',
   }) async {
     final now = DateTime.now();
     final conversation = Conversation()
       ..uuid = _uuid.v4()
-      ..gemId = gemId
+      ..acornId = acornId
       ..title = title
       ..createdAt = now
       ..updatedAt = now
@@ -35,14 +35,14 @@ class ConversationRepository {
     return conversation;
   }
 
-  /// Get all conversations for a gem, sorted by most recent
-  Future<List<Conversation>> getConversationsForGem(
-    String gemId, {
+  /// Get all conversations for an acorn, sorted by most recent
+  Future<List<Conversation>> getConversationsForAcorn(
+    String acornId, {
     bool includeArchived = false,
   }) async {
     var query = _isar.conversations
         .filter()
-        .gemIdEqualTo(gemId);
+        .acornIdEqualTo(acornId);
 
     if (!includeArchived) {
       query = query.isArchivedEqualTo(false);

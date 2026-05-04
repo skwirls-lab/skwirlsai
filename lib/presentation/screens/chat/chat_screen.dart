@@ -61,7 +61,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final activeConv = ref.watch(activeConversationProvider);
-    final activeGem = ref.watch(activeGemProvider);
+    final activeAcorn = ref.watch(activeAcornProvider);
     final isModelLoaded = ref.watch(isModelLoadedProvider);
 
     if (activeConv == null) {
@@ -164,9 +164,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               error: (e, _) =>
                   Center(child: Text('Error: $e')),
               data: (messages) {
-                // Empty chat — show Gemini-style greeting
+                // Empty chat — show Acorn-style greeting
                 if (messages.isEmpty && !_isStreaming) {
-                  return _EmptyChatGreeting(gemName: activeGem?.name);
+                  return _EmptyChatGreeting(acornName: activeAcorn?.name);
                 }
 
                 return ListView.builder(
@@ -359,7 +359,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     // Refresh messages
     ref.invalidate(messagesForConversationProvider(activeConv.uuid));
-    ref.invalidate(conversationsForGemProvider(activeConv.gemId));
+    ref.invalidate(conversationsForAcornProvider(activeConv.acornId));
 
     // Generate response
     await _generateResponse(activeConv.uuid);
@@ -379,7 +379,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     final convRepo = ref.read(conversationRepositoryProvider);
-    final activeGem = ref.read(activeGemProvider);
+    final activeAcorn = ref.read(activeAcornProvider);
     final settings = ref.read(settingsProvider);
     final messages = await convRepo.getMessages(conversationId);
 
@@ -400,8 +400,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           content: m.content,
         )).toList();
 
-    // Build system prompt: gem prompt + app context
-    final systemPrompt = _buildSystemPrompt(activeGem, settings);
+    // Build system prompt: acorn prompt + app context
+    final systemPrompt = _buildSystemPrompt(activeAcorn, settings);
 
     setState(() {
       _isStreaming = true;
@@ -442,14 +442,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  String _buildSystemPrompt(dynamic activeGem, dynamic settings) {
+  String _buildSystemPrompt(dynamic activeAcorn, dynamic settings) {
     final inferenceService = ref.read(inferenceServiceProvider);
     final buf = StringBuffer();
 
-    // Gem-specific system prompt
-    if (activeGem != null && activeGem.systemPrompt != null &&
-        (activeGem.systemPrompt as String).isNotEmpty) {
-      buf.writeln(activeGem.systemPrompt);
+    // Acorn-specific system prompt
+    if (activeAcorn != null && activeAcorn.systemPrompt != null &&
+        (activeAcorn.systemPrompt as String).isNotEmpty) {
+      buf.writeln(activeAcorn.systemPrompt);
       buf.writeln();
     } else {
       buf.writeln(
@@ -545,7 +545,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _refreshConversationList() {
     final activeConv = ref.read(activeConversationProvider);
     if (activeConv != null) {
-      ref.invalidate(conversationsForGemProvider(activeConv.gemId));
+      ref.invalidate(conversationsForAcornProvider(activeConv.acornId));
     }
   }
 
@@ -601,13 +601,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       case 'pin':
         convRepo.togglePin(activeConv.uuid);
         ref.invalidate(
-            conversationsForGemProvider(activeConv.gemId));
+            conversationsForAcornProvider(activeConv.acornId));
         break;
       case 'archive':
         convRepo.archiveConversation(activeConv.uuid);
         ref.read(activeConversationProvider.notifier).state = null;
         ref.invalidate(
-            conversationsForGemProvider(activeConv.gemId));
+            conversationsForAcornProvider(activeConv.acornId));
         break;
     }
   }
@@ -636,7 +636,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final activeConv = ref.read(activeConversationProvider);
                 if (activeConv != null) {
                   ref.invalidate(
-                      conversationsForGemProvider(activeConv.gemId));
+                      conversationsForAcornProvider(activeConv.acornId));
                 }
                 Navigator.pop(ctx);
               }
@@ -657,11 +657,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-/// Gemini-inspired empty chat greeting with subtle gradient background
+/// Acorn-inspired empty chat greeting with subtle gradient background
 class _EmptyChatGreeting extends StatelessWidget {
-  final String? gemName;
+  final String? acornName;
 
-  const _EmptyChatGreeting({this.gemName});
+  const _EmptyChatGreeting({this.acornName});
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -734,8 +734,8 @@ class _EmptyChatGreeting extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  gemName != null && gemName != 'General Assistant'
-                      ? 'How can $gemName help you?'
+                  acornName != null && acornName != 'General Assistant'
+                      ? 'How can $acornName help you?'
                       : 'What can I help you with?',
                   style: AppTextStyles.h2.copyWith(
                     fontSize: 22,
@@ -753,7 +753,7 @@ class _EmptyChatGreeting extends StatelessWidget {
   }
 }
 
-/// Subtle halftone dot pattern painter (inspired by Gemini's bg)
+/// Subtle halftone dot pattern painter
 class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

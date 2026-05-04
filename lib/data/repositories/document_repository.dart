@@ -8,9 +8,9 @@ class DocumentRepository {
 
   DocumentRepository({required Isar isar}) : _isar = isar;
 
-  /// Get all documents for a gem
-  Future<List<Document>> getDocumentsForGem(String gemId) async {
-    return _isar.documents.filter().gemIdEqualTo(gemId).findAll();
+  /// Get all documents for an acorn
+  Future<List<Document>> getDocumentsForAcorn(String acornId) async {
+    return _isar.documents.filter().acornIdEqualTo(acornId).findAll();
   }
 
   /// Get a document by UUID
@@ -35,7 +35,7 @@ class DocumentRepository {
     Log.i(_tag, 'Deleted document: ${doc.title}');
   }
 
-  /// Get total document count across all gems
+  /// Get total document count across all acorns
   Future<int> getTotalDocumentCount() async {
     return _isar.documents.count();
   }

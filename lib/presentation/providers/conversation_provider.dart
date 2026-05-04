@@ -9,10 +9,10 @@ final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
   return ConversationRepository(isar: isar);
 });
 
-final conversationsForGemProvider =
-    FutureProvider.family<List<Conversation>, String>((ref, gemId) async {
+final conversationsForAcornProvider =
+    FutureProvider.family<List<Conversation>, String>((ref, acornId) async {
   final repo = ref.watch(conversationRepositoryProvider);
-  return repo.getConversationsForGem(gemId);
+  return repo.getConversationsForAcorn(acornId);
 });
 
 final activeConversationProvider = StateProvider<Conversation?>((ref) => null);

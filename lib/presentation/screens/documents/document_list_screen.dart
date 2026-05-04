@@ -15,9 +15,9 @@ final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
 });
 
 class DocumentListScreen extends ConsumerWidget {
-  final String gemId;
+  final String acornId;
 
-  const DocumentListScreen({super.key, required this.gemId});
+  const DocumentListScreen({super.key, required this.acornId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,7 +34,7 @@ class DocumentListScreen extends ConsumerWidget {
         ],
       ),
       body: FutureBuilder<List<Document>>(
-        future: docRepo.getDocumentsForGem(gemId),
+        future: docRepo.getDocumentsForAcorn(acornId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -61,7 +61,7 @@ class DocumentListScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Add PDFs, text files, or markdown\nto give this Gem context',
+                    'Add PDFs, text files, or markdown\nto give this Acorn context',
                     style: AppTextStyles.bodySmall,
                     textAlign: TextAlign.center,
                   ),

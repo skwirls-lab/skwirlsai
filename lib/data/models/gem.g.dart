@@ -9,13 +9,13 @@ part of 'gem.dart';
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-extension GetGemCollection on Isar {
-  IsarCollection<Gem> get gems => this.collection();
+extension GetAcornCollection on Isar {
+  IsarCollection<Acorn> get acorns => this.collection();
 }
 
-const GemSchema = CollectionSchema(
-  name: r'Gem',
-  id: 736314238372862854,
+const AcornSchema = CollectionSchema(
+  name: r'Acorn',
+  id: 4379096634282038632,
   properties: {
     r'agentModeDefault': PropertySchema(
       id: 0,
@@ -93,10 +93,10 @@ const GemSchema = CollectionSchema(
       type: IsarType.string,
     )
   },
-  estimateSize: _gemEstimateSize,
-  serialize: _gemSerialize,
-  deserialize: _gemDeserialize,
-  deserializeProp: _gemDeserializeProp,
+  estimateSize: _acornEstimateSize,
+  serialize: _acornSerialize,
+  deserialize: _acornDeserialize,
+  deserializeProp: _acornDeserializeProp,
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
@@ -115,14 +115,14 @@ const GemSchema = CollectionSchema(
   },
   links: {},
   embeddedSchemas: {},
-  getId: _gemGetId,
-  getLinks: _gemGetLinks,
-  attach: _gemAttach,
+  getId: _acornGetId,
+  getLinks: _acornGetLinks,
+  attach: _acornAttach,
   version: '3.1.0+1',
 );
 
-int _gemEstimateSize(
-  Gem object,
+int _acornEstimateSize(
+  Acorn object,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
@@ -135,8 +135,8 @@ int _gemEstimateSize(
   return bytesCount;
 }
 
-void _gemSerialize(
-  Gem object,
+void _acornSerialize(
+  Acorn object,
   IsarWriter writer,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
@@ -158,13 +158,13 @@ void _gemSerialize(
   writer.writeString(offsets[14], object.uuid);
 }
 
-Gem _gemDeserialize(
+Acorn _acornDeserialize(
   Id id,
   IsarReader reader,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = Gem();
+  final object = Acorn();
   object.agentModeDefault = reader.readBool(offsets[0]);
   object.color = reader.readString(offsets[1]);
   object.createdAt = reader.readDateTime(offsets[2]);
@@ -184,7 +184,7 @@ Gem _gemDeserialize(
   return object;
 }
 
-P _gemDeserializeProp<P>(
+P _acornDeserializeProp<P>(
   IsarReader reader,
   int propertyId,
   int offset,
@@ -226,24 +226,24 @@ P _gemDeserializeProp<P>(
   }
 }
 
-Id _gemGetId(Gem object) {
+Id _acornGetId(Acorn object) {
   return object.id;
 }
 
-List<IsarLinkBase<dynamic>> _gemGetLinks(Gem object) {
+List<IsarLinkBase<dynamic>> _acornGetLinks(Acorn object) {
   return [];
 }
 
-void _gemAttach(IsarCollection<dynamic> col, Id id, Gem object) {
+void _acornAttach(IsarCollection<dynamic> col, Id id, Acorn object) {
   object.id = id;
 }
 
-extension GemByIndex on IsarCollection<Gem> {
-  Future<Gem?> getByUuid(String uuid) {
+extension AcornByIndex on IsarCollection<Acorn> {
+  Future<Acorn?> getByUuid(String uuid) {
     return getByIndex(r'uuid', [uuid]);
   }
 
-  Gem? getByUuidSync(String uuid) {
+  Acorn? getByUuidSync(String uuid) {
     return getByIndexSync(r'uuid', [uuid]);
   }
 
@@ -255,12 +255,12 @@ extension GemByIndex on IsarCollection<Gem> {
     return deleteByIndexSync(r'uuid', [uuid]);
   }
 
-  Future<List<Gem?>> getAllByUuid(List<String> uuidValues) {
+  Future<List<Acorn?>> getAllByUuid(List<String> uuidValues) {
     final values = uuidValues.map((e) => [e]).toList();
     return getAllByIndex(r'uuid', values);
   }
 
-  List<Gem?> getAllByUuidSync(List<String> uuidValues) {
+  List<Acorn?> getAllByUuidSync(List<String> uuidValues) {
     final values = uuidValues.map((e) => [e]).toList();
     return getAllByIndexSync(r'uuid', values);
   }
@@ -275,33 +275,33 @@ extension GemByIndex on IsarCollection<Gem> {
     return deleteAllByIndexSync(r'uuid', values);
   }
 
-  Future<Id> putByUuid(Gem object) {
+  Future<Id> putByUuid(Acorn object) {
     return putByIndex(r'uuid', object);
   }
 
-  Id putByUuidSync(Gem object, {bool saveLinks = true}) {
+  Id putByUuidSync(Acorn object, {bool saveLinks = true}) {
     return putByIndexSync(r'uuid', object, saveLinks: saveLinks);
   }
 
-  Future<List<Id>> putAllByUuid(List<Gem> objects) {
+  Future<List<Id>> putAllByUuid(List<Acorn> objects) {
     return putAllByIndex(r'uuid', objects);
   }
 
-  List<Id> putAllByUuidSync(List<Gem> objects, {bool saveLinks = true}) {
+  List<Id> putAllByUuidSync(List<Acorn> objects, {bool saveLinks = true}) {
     return putAllByIndexSync(r'uuid', objects, saveLinks: saveLinks);
   }
 }
 
-extension GemQueryWhereSort on QueryBuilder<Gem, Gem, QWhere> {
-  QueryBuilder<Gem, Gem, QAfterWhere> anyId() {
+extension AcornQueryWhereSort on QueryBuilder<Acorn, Acorn, QWhere> {
+  QueryBuilder<Acorn, Acorn, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
     });
   }
 }
 
-extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
-  QueryBuilder<Gem, Gem, QAfterWhereClause> idEqualTo(Id id) {
+extension AcornQueryWhere on QueryBuilder<Acorn, Acorn, QWhereClause> {
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IdWhereClause.between(
         lower: id,
@@ -310,7 +310,7 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterWhereClause> idNotEqualTo(Id id) {
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -332,7 +332,7 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterWhereClause> idGreaterThan(Id id,
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> idGreaterThan(Id id,
       {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
@@ -341,7 +341,7 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterWhereClause> idLessThan(Id id,
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> idLessThan(Id id,
       {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
@@ -350,7 +350,7 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterWhereClause> idBetween(
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> idBetween(
     Id lowerId,
     Id upperId, {
     bool includeLower = true,
@@ -366,7 +366,7 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterWhereClause> uuidEqualTo(String uuid) {
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> uuidEqualTo(String uuid) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
         indexName: r'uuid',
@@ -375,7 +375,7 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterWhereClause> uuidNotEqualTo(String uuid) {
+  QueryBuilder<Acorn, Acorn, QAfterWhereClause> uuidNotEqualTo(String uuid) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -410,8 +410,8 @@ extension GemQueryWhere on QueryBuilder<Gem, Gem, QWhereClause> {
   }
 }
 
-extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> agentModeDefaultEqualTo(
+extension AcornQueryFilter on QueryBuilder<Acorn, Acorn, QFilterCondition> {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> agentModeDefaultEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -421,7 +421,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -434,7 +434,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -449,7 +449,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -464,7 +464,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -483,7 +483,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorStartsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -496,7 +496,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorEndsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -509,7 +509,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorContains(String value,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorContains(String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -520,7 +520,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorMatches(String pattern,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorMatches(String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -531,7 +531,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorIsEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'color',
@@ -540,7 +540,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> colorIsNotEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> colorIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'color',
@@ -549,7 +549,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> createdAtEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> createdAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -559,7 +559,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> createdAtGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> createdAtGreaterThan(
     DateTime value, {
     bool include = false,
   }) {
@@ -572,7 +572,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> createdAtLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> createdAtLessThan(
     DateTime value, {
     bool include = false,
   }) {
@@ -585,7 +585,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> createdAtBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> createdAtBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
@@ -602,7 +602,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -615,7 +615,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -630,7 +630,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -645,7 +645,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -664,7 +664,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconStartsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -677,7 +677,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconEndsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -690,7 +690,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconContains(String value,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconContains(String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -701,7 +701,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconMatches(String pattern,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconMatches(String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -712,7 +712,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconIsEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'icon',
@@ -721,7 +721,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> iconIsNotEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> iconIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'icon',
@@ -730,7 +730,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> idEqualTo(Id value) {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'id',
@@ -739,7 +739,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> idGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> idGreaterThan(
     Id value, {
     bool include = false,
   }) {
@@ -752,7 +752,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> idLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> idLessThan(
     Id value, {
     bool include = false,
   }) {
@@ -765,7 +765,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> idBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
@@ -782,7 +782,8 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> isDefaultEqualTo(bool value) {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> isDefaultEqualTo(
+      bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isDefault',
@@ -791,7 +792,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> maxTokensIsNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> maxTokensIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'maxTokens',
@@ -799,7 +800,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> maxTokensIsNotNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> maxTokensIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'maxTokens',
@@ -807,7 +808,8 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> maxTokensEqualTo(int? value) {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> maxTokensEqualTo(
+      int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'maxTokens',
@@ -816,7 +818,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> maxTokensGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> maxTokensGreaterThan(
     int? value, {
     bool include = false,
   }) {
@@ -829,7 +831,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> maxTokensLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> maxTokensLessThan(
     int? value, {
     bool include = false,
   }) {
@@ -842,7 +844,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> maxTokensBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> maxTokensBetween(
     int? lower,
     int? upper, {
     bool includeLower = true,
@@ -859,7 +861,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -872,7 +874,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -887,7 +889,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -902,7 +904,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -921,7 +923,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameStartsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -934,7 +936,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameEndsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -947,7 +949,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameContains(String value,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameContains(String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -958,7 +960,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameMatches(String pattern,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameMatches(String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -969,7 +971,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameIsEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'name',
@@ -978,7 +980,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> nameIsNotEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> nameIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'name',
@@ -987,7 +989,8 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> ragEnabledEqualTo(bool value) {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> ragEnabledEqualTo(
+      bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'ragEnabled',
@@ -996,7 +999,8 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> syncVersionEqualTo(int value) {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> syncVersionEqualTo(
+      int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'syncVersion',
@@ -1005,7 +1009,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> syncVersionGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> syncVersionGreaterThan(
     int value, {
     bool include = false,
   }) {
@@ -1018,7 +1022,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> syncVersionLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> syncVersionLessThan(
     int value, {
     bool include = false,
   }) {
@@ -1031,7 +1035,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> syncVersionBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> syncVersionBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -1048,7 +1052,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1061,7 +1065,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1076,7 +1080,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1091,7 +1095,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1110,7 +1114,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptStartsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1123,7 +1127,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptEndsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1136,7 +1140,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptContains(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptContains(
       String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1148,7 +1152,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptMatches(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptMatches(
       String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1160,7 +1164,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptIsEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'systemPrompt',
@@ -1169,7 +1173,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> systemPromptIsNotEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> systemPromptIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'systemPrompt',
@@ -1178,7 +1182,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> temperatureIsNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> temperatureIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'temperature',
@@ -1186,7 +1190,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> temperatureIsNotNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> temperatureIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'temperature',
@@ -1194,7 +1198,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> temperatureEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> temperatureEqualTo(
     double? value, {
     double epsilon = Query.epsilon,
   }) {
@@ -1207,7 +1211,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> temperatureGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> temperatureGreaterThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
@@ -1222,7 +1226,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> temperatureLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> temperatureLessThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
@@ -1237,7 +1241,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> temperatureBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> temperatureBetween(
     double? lower,
     double? upper, {
     bool includeLower = true,
@@ -1256,7 +1260,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topKIsNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topKIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'topK',
@@ -1264,7 +1268,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topKIsNotNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topKIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'topK',
@@ -1272,7 +1276,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topKEqualTo(int? value) {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topKEqualTo(int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'topK',
@@ -1281,7 +1285,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topKGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topKGreaterThan(
     int? value, {
     bool include = false,
   }) {
@@ -1294,7 +1298,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topKLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topKLessThan(
     int? value, {
     bool include = false,
   }) {
@@ -1307,7 +1311,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topKBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topKBetween(
     int? lower,
     int? upper, {
     bool includeLower = true,
@@ -1324,7 +1328,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topPIsNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topPIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'topP',
@@ -1332,7 +1336,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topPIsNotNull() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topPIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'topP',
@@ -1340,7 +1344,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topPEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topPEqualTo(
     double? value, {
     double epsilon = Query.epsilon,
   }) {
@@ -1353,7 +1357,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topPGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topPGreaterThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
@@ -1368,7 +1372,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topPLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topPLessThan(
     double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
@@ -1383,7 +1387,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> topPBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> topPBetween(
     double? lower,
     double? upper, {
     bool includeLower = true,
@@ -1402,7 +1406,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> updatedAtEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> updatedAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1412,7 +1416,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> updatedAtGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> updatedAtGreaterThan(
     DateTime value, {
     bool include = false,
   }) {
@@ -1425,7 +1429,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> updatedAtLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> updatedAtLessThan(
     DateTime value, {
     bool include = false,
   }) {
@@ -1438,7 +1442,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> updatedAtBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> updatedAtBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
@@ -1455,7 +1459,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidEqualTo(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1468,7 +1472,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidGreaterThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1483,7 +1487,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidLessThan(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1498,7 +1502,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidBetween(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1517,7 +1521,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidStartsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1530,7 +1534,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidEndsWith(
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1543,7 +1547,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidContains(String value,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidContains(String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -1554,7 +1558,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidMatches(String pattern,
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidMatches(String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -1565,7 +1569,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidIsEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'uuid',
@@ -1574,7 +1578,7 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterFilterCondition> uuidIsNotEmpty() {
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> uuidIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'uuid',
@@ -1584,476 +1588,476 @@ extension GemQueryFilter on QueryBuilder<Gem, Gem, QFilterCondition> {
   }
 }
 
-extension GemQueryObject on QueryBuilder<Gem, Gem, QFilterCondition> {}
+extension AcornQueryObject on QueryBuilder<Acorn, Acorn, QFilterCondition> {}
 
-extension GemQueryLinks on QueryBuilder<Gem, Gem, QFilterCondition> {}
+extension AcornQueryLinks on QueryBuilder<Acorn, Acorn, QFilterCondition> {}
 
-extension GemQuerySortBy on QueryBuilder<Gem, Gem, QSortBy> {
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByAgentModeDefault() {
+extension AcornQuerySortBy on QueryBuilder<Acorn, Acorn, QSortBy> {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByAgentModeDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'agentModeDefault', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByAgentModeDefaultDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByAgentModeDefaultDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'agentModeDefault', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByColor() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByColor() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'color', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByColorDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByColorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'color', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByCreatedAt() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByCreatedAtDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByIcon() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByIcon() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'icon', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByIconDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByIconDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'icon', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByIsDefault() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByIsDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDefault', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByIsDefaultDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByIsDefaultDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDefault', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByMaxTokens() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByMaxTokens() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxTokens', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByMaxTokensDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByMaxTokensDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxTokens', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByName() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByNameDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByRagEnabled() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByRagEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ragEnabled', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByRagEnabledDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByRagEnabledDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ragEnabled', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortBySyncVersion() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortBySyncVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncVersion', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortBySyncVersionDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortBySyncVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncVersion', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortBySystemPrompt() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortBySystemPrompt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systemPrompt', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortBySystemPromptDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortBySystemPromptDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systemPrompt', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByTemperature() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByTemperature() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'temperature', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByTemperatureDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByTemperatureDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'temperature', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByTopK() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByTopK() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topK', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByTopKDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByTopKDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topK', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByTopP() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByTopP() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topP', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByTopPDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByTopPDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topP', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByUpdatedAt() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByUpdatedAtDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByUuid() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByUuid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> sortByUuidDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByUuidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.desc);
     });
   }
 }
 
-extension GemQuerySortThenBy on QueryBuilder<Gem, Gem, QSortThenBy> {
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByAgentModeDefault() {
+extension AcornQuerySortThenBy on QueryBuilder<Acorn, Acorn, QSortThenBy> {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByAgentModeDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'agentModeDefault', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByAgentModeDefaultDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByAgentModeDefaultDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'agentModeDefault', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByColor() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByColor() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'color', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByColorDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByColorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'color', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByCreatedAt() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByCreatedAtDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByIcon() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByIcon() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'icon', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByIconDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByIconDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'icon', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenById() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByIdDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByIsDefault() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByIsDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDefault', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByIsDefaultDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByIsDefaultDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDefault', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByMaxTokens() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByMaxTokens() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxTokens', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByMaxTokensDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByMaxTokensDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxTokens', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByName() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByNameDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByRagEnabled() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByRagEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ragEnabled', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByRagEnabledDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByRagEnabledDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ragEnabled', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenBySyncVersion() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenBySyncVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncVersion', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenBySyncVersionDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenBySyncVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncVersion', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenBySystemPrompt() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenBySystemPrompt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systemPrompt', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenBySystemPromptDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenBySystemPromptDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systemPrompt', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByTemperature() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByTemperature() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'temperature', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByTemperatureDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByTemperatureDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'temperature', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByTopK() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByTopK() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topK', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByTopKDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByTopKDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topK', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByTopP() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByTopP() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topP', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByTopPDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByTopPDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'topP', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByUpdatedAt() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByUpdatedAtDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByUuid() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByUuid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.asc);
     });
   }
 
-  QueryBuilder<Gem, Gem, QAfterSortBy> thenByUuidDesc() {
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByUuidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.desc);
     });
   }
 }
 
-extension GemQueryWhereDistinct on QueryBuilder<Gem, Gem, QDistinct> {
-  QueryBuilder<Gem, Gem, QDistinct> distinctByAgentModeDefault() {
+extension AcornQueryWhereDistinct on QueryBuilder<Acorn, Acorn, QDistinct> {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByAgentModeDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'agentModeDefault');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByColor(
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByColor(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'color', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByCreatedAt() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByIcon(
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByIcon(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'icon', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByIsDefault() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByIsDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isDefault');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByMaxTokens() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByMaxTokens() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'maxTokens');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByName(
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByRagEnabled() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByRagEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'ragEnabled');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctBySyncVersion() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctBySyncVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncVersion');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctBySystemPrompt(
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctBySystemPrompt(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'systemPrompt', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByTemperature() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByTemperature() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'temperature');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByTopK() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByTopK() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'topK');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByTopP() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByTopP() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'topP');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByUpdatedAt() {
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
     });
   }
 
-  QueryBuilder<Gem, Gem, QDistinct> distinctByUuid(
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByUuid(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'uuid', caseSensitive: caseSensitive);
@@ -2061,98 +2065,98 @@ extension GemQueryWhereDistinct on QueryBuilder<Gem, Gem, QDistinct> {
   }
 }
 
-extension GemQueryProperty on QueryBuilder<Gem, Gem, QQueryProperty> {
-  QueryBuilder<Gem, int, QQueryOperations> idProperty() {
+extension AcornQueryProperty on QueryBuilder<Acorn, Acorn, QQueryProperty> {
+  QueryBuilder<Acorn, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
     });
   }
 
-  QueryBuilder<Gem, bool, QQueryOperations> agentModeDefaultProperty() {
+  QueryBuilder<Acorn, bool, QQueryOperations> agentModeDefaultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'agentModeDefault');
     });
   }
 
-  QueryBuilder<Gem, String, QQueryOperations> colorProperty() {
+  QueryBuilder<Acorn, String, QQueryOperations> colorProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'color');
     });
   }
 
-  QueryBuilder<Gem, DateTime, QQueryOperations> createdAtProperty() {
+  QueryBuilder<Acorn, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
     });
   }
 
-  QueryBuilder<Gem, String, QQueryOperations> iconProperty() {
+  QueryBuilder<Acorn, String, QQueryOperations> iconProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'icon');
     });
   }
 
-  QueryBuilder<Gem, bool, QQueryOperations> isDefaultProperty() {
+  QueryBuilder<Acorn, bool, QQueryOperations> isDefaultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isDefault');
     });
   }
 
-  QueryBuilder<Gem, int?, QQueryOperations> maxTokensProperty() {
+  QueryBuilder<Acorn, int?, QQueryOperations> maxTokensProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'maxTokens');
     });
   }
 
-  QueryBuilder<Gem, String, QQueryOperations> nameProperty() {
+  QueryBuilder<Acorn, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
     });
   }
 
-  QueryBuilder<Gem, bool, QQueryOperations> ragEnabledProperty() {
+  QueryBuilder<Acorn, bool, QQueryOperations> ragEnabledProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'ragEnabled');
     });
   }
 
-  QueryBuilder<Gem, int, QQueryOperations> syncVersionProperty() {
+  QueryBuilder<Acorn, int, QQueryOperations> syncVersionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'syncVersion');
     });
   }
 
-  QueryBuilder<Gem, String, QQueryOperations> systemPromptProperty() {
+  QueryBuilder<Acorn, String, QQueryOperations> systemPromptProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'systemPrompt');
     });
   }
 
-  QueryBuilder<Gem, double?, QQueryOperations> temperatureProperty() {
+  QueryBuilder<Acorn, double?, QQueryOperations> temperatureProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'temperature');
     });
   }
 
-  QueryBuilder<Gem, int?, QQueryOperations> topKProperty() {
+  QueryBuilder<Acorn, int?, QQueryOperations> topKProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'topK');
     });
   }
 
-  QueryBuilder<Gem, double?, QQueryOperations> topPProperty() {
+  QueryBuilder<Acorn, double?, QQueryOperations> topPProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'topP');
     });
   }
 
-  QueryBuilder<Gem, DateTime, QQueryOperations> updatedAtProperty() {
+  QueryBuilder<Acorn, DateTime, QQueryOperations> updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updatedAt');
     });
   }
 
-  QueryBuilder<Gem, String, QQueryOperations> uuidProperty() {
+  QueryBuilder<Acorn, String, QQueryOperations> uuidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'uuid');
     });

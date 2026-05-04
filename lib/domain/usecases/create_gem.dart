@@ -1,12 +1,12 @@
 import '../../data/models/gem.dart';
 import '../../data/repositories/gem_repository.dart';
 
-class CreateGemUseCase {
-  final GemRepository _gemRepo;
+class CreateAcornUseCase {
+  final AcornRepository _acornRepo;
 
-  CreateGemUseCase({required GemRepository gemRepo}) : _gemRepo = gemRepo;
+  CreateAcornUseCase({required AcornRepository acornRepo}) : _acornRepo = acornRepo;
 
-  Future<Gem> execute({
+  Future<Acorn> execute({
     required String name,
     String systemPrompt = '',
     String icon = '💎',
@@ -18,7 +18,7 @@ class CreateGemUseCase {
     int? topK,
     int? maxTokens,
   }) async {
-    return _gemRepo.createGem(
+    return _acornRepo.createAcorn(
       name: name,
       systemPrompt: systemPrompt,
       icon: icon,

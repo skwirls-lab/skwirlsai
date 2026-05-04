@@ -6,26 +6,26 @@ import '../../providers/gem_provider.dart';
 import '../../widgets/gem_card.dart';
 import 'gem_editor_screen.dart';
 
-class GemListScreen extends ConsumerWidget {
-  const GemListScreen({super.key});
+class AcornListScreen extends ConsumerWidget {
+  const AcornListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gemsAsync = ref.watch(allGemsProvider);
-    final activeGem = ref.watch(activeGemProvider);
+    final acornsAsync = ref.watch(allAcornsProvider);
+    final activeAcorn = ref.watch(activeAcornProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gems'),
+        title: const Text('Acorns'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => GemEditorScreen(
+                builder: (_) => AcornEditorScreen(
                   onSaved: () {
-                    ref.invalidate(allGemsProvider);
+                    ref.invalidate(allAcornsProvider);
                     Navigator.pop(context);
                   },
                 ),
@@ -34,13 +34,13 @@ class GemListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: gemsAsync.when(
+      body: acornsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (gems) {
-          if (gems.isEmpty) {
+        data: (acorns) {
+          if (acorns.isEmpty) {
             return const Center(
-              child: Text('No gems yet', style: AppTextStyles.body),
+              child: Text('No acorns yet', style: AppTextStyles.body),
             );
           }
 
@@ -52,17 +52,17 @@ class GemListScreen extends ConsumerWidget {
               crossAxisSpacing: 12,
               childAspectRatio: 0.9,
             ),
-            itemCount: gems.length,
+            itemCount: acorns.length,
             itemBuilder: (_, index) {
-              final gem = gems[index];
-              return GemCard(
-                gem: gem,
-                isSelected: activeGem?.uuid == gem.uuid,
+              final acorn = acorns[index];
+              return AcornCard(
+                acorn: acorn,
+                isSelected: activeAcorn?.uuid == acorn.uuid,
                 onTap: () {
-                  ref.read(activeGemProvider.notifier).state = gem;
+                  ref.read(activeAcornProvider.notifier).state = acorn;
                 },
                 onLongPress: () {
-                  _showGemOptions(context, ref, gem);
+                  _showAcornOptions(context, ref, acorn);
                 },
               );
             },
@@ -72,7 +72,7 @@ class GemListScreen extends ConsumerWidget {
     );
   }
 
-  void _showGemOptions(BuildContext context, WidgetRef ref, gem) {
+  void _showAcornOptions(BuildContext context, WidgetRef ref, acorn) {
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Container(
@@ -88,10 +88,10 @@ class GemListScreen extends ConsumerWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => GemEditorScreen(
-                      existingGem: gem,
+                    builder: (_) => AcornEditorScreen(
+                      existingAcorn: acorn,
                       onSaved: () {
-                        ref.invalidate(allGemsProvider);
+                        ref.invalidate(allAcornsProvider);
                         Navigator.pop(context);
                       },
                     ),
@@ -99,7 +99,7 @@ class GemListScreen extends ConsumerWidget {
                 );
               },
             ),
-            if (!gem.isDefault)
+            if (!acorn.isDefault)
               ListTile(
                 leading: const Icon(Icons.delete_rounded,
                     color: AppColors.error),
@@ -110,9 +110,9 @@ class GemListScreen extends ConsumerWidget {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('Delete Gem?'),
+                      title: const Text('Delete Acorn?'),
                       content: Text(
-                          'This will delete "${gem.name}" but keep its conversations.'),
+                          'This will delete "${acorn.name}" but keep its conversations.'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
@@ -129,8 +129,8 @@ class GemListScreen extends ConsumerWidget {
                     ),
                   );
                   if (confirmed == true) {
-                    await ref.read(gemRepositoryProvider).deleteGem(gem.uuid);
-                    ref.invalidate(allGemsProvider);
+                    await ref.read(acornRepositoryProvider).deleteAcorn(acorn.uuid);
+                    ref.invalidate(allAcornsProvider);
                   }
                 },
               ),

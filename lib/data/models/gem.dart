@@ -1,9 +1,9 @@
 import 'package:isar/isar.dart';
 
-part 'gem.g.dart';
+part 'gem.g.dart'; // file will be renamed to acorn.g.dart
 
 @collection
-class Gem {
+class Acorn {
   Id id = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -11,31 +11,31 @@ class Gem {
 
   late String name;
 
-  /// The system prompt that defines this Gem's behavior
+  /// The system prompt that defines this Acorn's behavior
   String systemPrompt = '';
 
   /// Emoji or icon identifier
-  String icon = '💎';
+  String icon = '🌰';
 
-  /// Hex color string for the Gem's accent (e.g., '#E3AB59')
+  /// Hex color string for the Acorn's accent (e.g., '#E3AB59')
   String color = '#E3AB59';
 
   late DateTime createdAt;
   late DateTime updatedAt;
 
-  /// Whether RAG document search is enabled for this Gem
+  /// Whether RAG document search is enabled for this Acorn
   bool ragEnabled = false;
 
-  /// Whether agent mode is enabled by default for this Gem
+  /// Whether agent mode is enabled by default for this Acorn
   bool agentModeDefault = false;
 
-  /// Per-Gem generation settings overrides (null = use global defaults)
+  /// Per-Acorn generation settings overrides (null = use global defaults)
   double? temperature;
   double? topP;
   int? topK;
   int? maxTokens;
 
-  /// Whether this is a built-in default Gem (cannot be deleted)
+  /// Whether this is a built-in default Acorn (cannot be deleted)
   bool isDefault = false;
 
   /// Sync version counter
@@ -59,8 +59,8 @@ class Gem {
         'syncVersion': syncVersion,
       };
 
-  static Gem fromJson(Map<String, dynamic> json) {
-    return Gem()
+  static Acorn fromJson(Map<String, dynamic> json) {
+    return Acorn()
       ..uuid = json['uuid'] as String
       ..name = json['name'] as String
       ..systemPrompt = json['systemPrompt'] as String? ?? ''
@@ -78,12 +78,12 @@ class Gem {
       ..syncVersion = json['syncVersion'] as int? ?? 0;
   }
 
-  /// Default Gems that ship with the app
-  static List<Gem> get defaults {
+  /// Default Acorns that ship with the app
+  static List<Acorn> get defaults {
     final now = DateTime.now();
     return [
-      Gem()
-        ..uuid = 'gem-general-assistant'
+      Acorn()
+        ..uuid = 'acorn-general-assistant'
         ..name = 'General Assistant'
         ..systemPrompt = ''
         ..icon = '🤖'
@@ -91,8 +91,8 @@ class Gem {
         ..createdAt = now
         ..updatedAt = now
         ..isDefault = true,
-      Gem()
-        ..uuid = 'gem-code-helper'
+      Acorn()
+        ..uuid = 'acorn-code-helper'
         ..name = 'Code Helper'
         ..systemPrompt =
             'You are an expert software developer. Help the user write, debug, and explain code. Provide clear, concise solutions with best practices. Always include relevant code examples.'
@@ -101,8 +101,8 @@ class Gem {
         ..createdAt = now
         ..updatedAt = now
         ..isDefault = true,
-      Gem()
-        ..uuid = 'gem-social-media'
+      Acorn()
+        ..uuid = 'acorn-social-media'
         ..name = 'Social Media Creator'
         ..systemPrompt =
             'You are a social media content strategist. Help create engaging posts, captions, hashtags, scripts for short-form video, and content calendars. Tailor content for the specified platform (Instagram, TikTok, LinkedIn, X/Twitter, YouTube). Be creative, trendy, and audience-aware.'
@@ -112,8 +112,8 @@ class Gem {
         ..updatedAt = now
         ..agentModeDefault = true
         ..isDefault = true,
-      Gem()
-        ..uuid = 'gem-business-analyst'
+      Acorn()
+        ..uuid = 'acorn-business-analyst'
         ..name = 'Business Analyst'
         ..systemPrompt =
             'You are a business analyst and automation consultant. Help analyze data, create reports, develop business strategies, and design workflow automations. Be data-driven and action-oriented.'

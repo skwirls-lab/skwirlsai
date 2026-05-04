@@ -3,25 +3,25 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/gem.dart';
 
-class GemCard extends StatelessWidget {
-  final Gem gem;
+class AcornCard extends StatelessWidget {
+  final Acorn acorn;
   final bool isSelected;
   final int conversationCount;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
-  const GemCard({
+  const AcornCard({
     super.key,
-    required this.gem,
+    required this.acorn,
     this.isSelected = false,
     this.conversationCount = 0,
     required this.onTap,
     this.onLongPress,
   });
 
-  Color get _gemColor {
+  Color get _acornColor {
     try {
-      final hex = gem.color.replaceFirst('#', '');
+      final hex = acorn.color.replaceFirst('#', '');
       return Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
       return AppColors.amber;
@@ -38,11 +38,11 @@ class GemCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? _gemColor.withOpacity(0.15)
+              ? _acornColor.withOpacity(0.15)
               : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? _gemColor : AppColors.divider,
+            color: isSelected ? _acornColor : AppColors.divider,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -50,14 +50,14 @@ class GemCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              gem.icon,
+              acorn.icon,
               style: const TextStyle(fontSize: 32),
             ),
             const SizedBox(height: 8),
             Text(
-              gem.name,
+              acorn.name,
               style: AppTextStyles.label.copyWith(
-                color: isSelected ? _gemColor : AppColors.textPrimary,
+                color: isSelected ? _acornColor : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
               textAlign: TextAlign.center,

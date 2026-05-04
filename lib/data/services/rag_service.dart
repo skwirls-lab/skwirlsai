@@ -22,9 +22,9 @@ class RagService {
   /// Ingest a document: read, chunk, index, and store
   Future<Document> ingestDocument({
     required String filePath,
-    required String gemId,
+    required String acornId,
   }) async {
-    Log.i(_tag, 'Ingesting document: $filePath for gem: $gemId');
+    Log.i(_tag, 'Ingesting document: $filePath for acorn: $acornId');
 
     final file = File(filePath);
     if (!await file.exists()) {
@@ -40,7 +40,7 @@ class RagService {
     // Create document record
     final doc = Document()
       ..uuid = _uuid.v4()
-      ..gemId = gemId
+      ..acornId = acornId
       ..title = fileName
       ..filePath = filePath
       ..fileType = fileType
@@ -84,15 +84,15 @@ class RagService {
   /// Search for relevant chunks using BM25 keyword search
   Future<List<RagResult>> searchBM25({
     required String query,
-    required String gemId,
+    required String acornId,
     int topK = AppConstants.ragTopK,
   }) async {
-    Log.i(_tag, 'BM25 search: "$query" in gem: $gemId');
+    Log.i(_tag, 'BM25 search: "$query" in acorn: $acornId');
 
-    // Get all documents for this gem
+    // Get all documents for this acorn
     final docs = await _isar.documents
         .filter()
-        .gemIdEqualTo(gemId)
+        .acornIdEqualTo(acornId)
         .findAll();
 
     if (docs.isEmpty) return [];
@@ -181,21 +181,21 @@ class RagService {
   /// Search using embedding-based semantic search (requires embedding model)
   Future<List<RagResult>> searchSemantic({
     required String query,
-    required String gemId,
+    required String acornId,
     int topK = AppConstants.ragTopK,
   }) async {
     if (!_embeddingModelLoaded) {
       Log.w(_tag, 'Embedding model not loaded, falling back to BM25');
-      return searchBM25(query: query, gemId: gemId, topK: topK);
+      return searchBM25(query: query, acornId: acornId, topK: topK);
     }
 
-    Log.i(_tag, 'Semantic search: "$query" in gem: $gemId');
+    Log.i(_tag, 'Semantic search: "$query" in acorn: $acornId');
 
     final queryEmbedding = await _computeEmbedding(query);
 
     final docs = await _isar.documents
         .filter()
-        .gemIdEqualTo(gemId)
+        .acornIdEqualTo(acornId)
         .findAll();
 
     if (docs.isEmpty) return [];
@@ -244,13 +244,13 @@ class RagService {
   /// Auto-select best search strategy
   Future<List<RagResult>> search({
     required String query,
-    required String gemId,
+    required String acornId,
     int topK = AppConstants.ragTopK,
   }) async {
     if (_embeddingModelLoaded) {
-      return searchSemantic(query: query, gemId: gemId, topK: topK);
+      return searchSemantic(query: query, acornId: acornId, topK: topK);
     }
-    return searchBM25(query: query, gemId: gemId, topK: topK);
+    return searchBM25(query: query, acornId: acornId, topK: topK);
   }
 
   /// Build context string from RAG results for injection into prompt
@@ -267,11 +267,11 @@ class RagService {
     return buffer.toString();
   }
 
-  /// Delete all documents and chunks for a gem
-  Future<void> deleteDocumentsForGem(String gemId) async {
+  /// Delete all documents and chunks for an acorn
+  Future<void> deleteDocumentsForAcorn(String acornId) async {
     final docs = await _isar.documents
         .filter()
-        .gemIdEqualTo(gemId)
+        .acornIdEqualTo(acornId)
         .findAll();
 
     await _isar.writeTxn(() async {
@@ -285,12 +285,12 @@ class RagService {
       await _isar.documents.deleteAll(docs.map((d) => d.id).toList());
     });
 
-    Log.i(_tag, 'Deleted ${docs.length} documents for gem: $gemId');
+    Log.i(_tag, 'Deleted ${docs.length} documents for acorn: $acornId');
   }
 
-  /// Get documents for a specific gem
-  Future<List<Document>> getDocumentsForGem(String gemId) async {
-    return _isar.documents.filter().gemIdEqualTo(gemId).findAll();
+  /// Get documents for a specific acorn
+  Future<List<Document>> getDocumentsForAcorn(String acornId) async {
+    return _isar.documents.filter().acornIdEqualTo(acornId).findAll();
   }
 
   // --- Private helpers ---

@@ -10,7 +10,7 @@ class Conversation {
   late String uuid;
 
   @Index()
-  late String gemId;
+  late String acornId;
 
   late String title;
 
@@ -30,7 +30,7 @@ class Conversation {
 
   Map<String, dynamic> toJson() => {
         'uuid': uuid,
-        'gemId': gemId,
+        'acornId': acornId,
         'title': title,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
@@ -44,7 +44,7 @@ class Conversation {
   static Conversation fromJson(Map<String, dynamic> json) {
     return Conversation()
       ..uuid = json['uuid'] as String
-      ..gemId = json['gemId'] as String
+      ..acornId = json['acornId'] as String
       ..title = json['title'] as String
       ..createdAt = DateTime.parse(json['createdAt'] as String)
       ..updatedAt = DateTime.parse(json['updatedAt'] as String)

@@ -2,7 +2,7 @@ import '../../data/models/message.dart';
 import '../../data/repositories/conversation_repository.dart';
 import '../../data/services/inference_service.dart';
 import '../../data/services/rag_service.dart';
-import '../../data/models/gem.dart';
+import '../../data/models/gem.dart'; // Acorn model
 
 class SendMessageUseCase {
   final ConversationRepository _conversationRepo;
@@ -21,7 +21,7 @@ class SendMessageUseCase {
   Stream<String> execute({
     required String conversationId,
     required String userMessage,
-    required Gem gem,
+    required Acorn acorn,
     bool agentMode = false,
   }) async* {
     // 1. Save user message
@@ -32,12 +32,12 @@ class SendMessageUseCase {
     );
 
     // 2. Build system prompt with optional RAG context
-    String? systemPrompt = gem.systemPrompt.isNotEmpty ? gem.systemPrompt : null;
+    String? systemPrompt = acorn.systemPrompt.isNotEmpty ? acorn.systemPrompt : null;
 
-    if (gem.ragEnabled) {
+    if (acorn.ragEnabled) {
       final ragResults = await _ragService.search(
         query: userMessage,
-        gemId: gem.uuid,
+        acornId: acorn.uuid,
       );
       if (ragResults.isNotEmpty) {
         final ragContext = _ragService.buildRagContext(ragResults);

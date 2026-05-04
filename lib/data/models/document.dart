@@ -9,9 +9,9 @@ class Document {
   @Index()
   late String uuid;
 
-  /// Which Gem this document belongs to
+  /// Which Acorn this document belongs to
   @Index()
-  late String gemId;
+  late String acornId;
 
   late String title;
 
@@ -34,7 +34,7 @@ class Document {
 
   Map<String, dynamic> toJson() => {
         'uuid': uuid,
-        'gemId': gemId,
+        'acornId': acornId,
         'title': title,
         'filePath': filePath,
         'fileType': fileType,
@@ -47,7 +47,7 @@ class Document {
   static Document fromJson(Map<String, dynamic> json) {
     return Document()
       ..uuid = json['uuid'] as String
-      ..gemId = json['gemId'] as String
+      ..acornId = json['acornId'] as String
       ..title = json['title'] as String
       ..filePath = json['filePath'] as String
       ..fileType = json['fileType'] as String

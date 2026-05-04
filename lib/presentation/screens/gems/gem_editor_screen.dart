@@ -6,21 +6,21 @@ import '../../../core/utils/validators.dart';
 import '../../../data/models/gem.dart';
 import '../../providers/gem_provider.dart';
 
-class GemEditorScreen extends ConsumerStatefulWidget {
-  final Gem? existingGem;
+class AcornEditorScreen extends ConsumerStatefulWidget {
+  final Acorn? existingAcorn;
   final VoidCallback onSaved;
 
-  const GemEditorScreen({
+  const AcornEditorScreen({
     super.key,
-    this.existingGem,
+    this.existingAcorn,
     required this.onSaved,
   });
 
   @override
-  ConsumerState<GemEditorScreen> createState() => _GemEditorScreenState();
+  ConsumerState<AcornEditorScreen> createState() => _AcornEditorScreenState();
 }
 
-class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
+class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _promptController;
@@ -29,7 +29,7 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
   late bool _ragEnabled;
   late bool _agentModeDefault;
 
-  bool get _isEditing => widget.existingGem != null;
+  bool get _isEditing => widget.existingAcorn != null;
 
   static const _iconOptions = [
     '🤖', '💻', '📱', '📊', '📝', '🎨', '🎵', '📸',
@@ -47,13 +47,13 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
   void initState() {
     super.initState();
     _nameController =
-        TextEditingController(text: widget.existingGem?.name ?? '');
+        TextEditingController(text: widget.existingAcorn?.name ?? '');
     _promptController =
-        TextEditingController(text: widget.existingGem?.systemPrompt ?? '');
-    _selectedIcon = widget.existingGem?.icon ?? '💎';
-    _selectedColor = widget.existingGem?.color ?? '#E3AB59';
-    _ragEnabled = widget.existingGem?.ragEnabled ?? false;
-    _agentModeDefault = widget.existingGem?.agentModeDefault ?? false;
+        TextEditingController(text: widget.existingAcorn?.systemPrompt ?? '');
+    _selectedIcon = widget.existingAcorn?.icon ?? '🌰';
+    _selectedColor = widget.existingAcorn?.color ?? '#E3AB59';
+    _ragEnabled = widget.existingAcorn?.ragEnabled ?? false;
+    _agentModeDefault = widget.existingAcorn?.agentModeDefault ?? false;
   }
 
   @override
@@ -67,7 +67,7 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Gem' : 'Create Gem'),
+        title: Text(_isEditing ? 'Edit Acorn' : 'Create Acorn'),
         actions: [
           TextButton(
             onPressed: _save,
@@ -114,10 +114,10 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Gem Name',
+                labelText: 'Acorn Name',
                 hintText: 'e.g., Writing Assistant',
               ),
-              validator: Validators.gemName,
+              validator: Validators.acornName,
             ),
             const SizedBox(height: 16),
             // Color picker
@@ -153,7 +153,7 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
               decoration: const InputDecoration(
                 labelText: 'System Prompt',
                 hintText:
-                    'Define how this Gem should behave...\n\nExample: "You are a helpful writing assistant who specializes in creating engaging blog posts."',
+                    'Define how this Acorn should behave...\n\nExample: "You are a helpful writing assistant who specializes in creating engaging blog posts."',
                 alignLabelWithHint: true,
               ),
               maxLines: 8,
@@ -172,7 +172,7 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
             SwitchListTile(
               title: const Text('Agent Mode Default'),
               subtitle: const Text(
-                  'Enable tool use by default in this Gem'),
+                  'Enable tool use by default in this Acorn'),
               value: _agentModeDefault,
               onChanged: (v) => setState(() => _agentModeDefault = v),
             ),
@@ -185,19 +185,19 @@ class _GemEditorScreenState extends ConsumerState<GemEditorScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final gemRepo = ref.read(gemRepositoryProvider);
+    final acornRepo = ref.read(acornRepositoryProvider);
 
     if (_isEditing) {
-      final gem = widget.existingGem!;
-      gem.name = _nameController.text.trim();
-      gem.systemPrompt = _promptController.text.trim();
-      gem.icon = _selectedIcon;
-      gem.color = _selectedColor;
-      gem.ragEnabled = _ragEnabled;
-      gem.agentModeDefault = _agentModeDefault;
-      await gemRepo.updateGem(gem);
+      final acorn = widget.existingAcorn!;
+      acorn.name = _nameController.text.trim();
+      acorn.systemPrompt = _promptController.text.trim();
+      acorn.icon = _selectedIcon;
+      acorn.color = _selectedColor;
+      acorn.ragEnabled = _ragEnabled;
+      acorn.agentModeDefault = _agentModeDefault;
+      await acornRepo.updateAcorn(acorn);
     } else {
-      await gemRepo.createGem(
+      await acornRepo.createAcorn(
         name: _nameController.text.trim(),
         systemPrompt: _promptController.text.trim(),
         icon: _selectedIcon,

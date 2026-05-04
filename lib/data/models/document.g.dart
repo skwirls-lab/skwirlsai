@@ -17,34 +17,34 @@ const DocumentSchema = CollectionSchema(
   name: r'Document',
   id: -6041136144672943509,
   properties: {
-    r'chunkCount': PropertySchema(
+    r'acornId': PropertySchema(
       id: 0,
+      name: r'acornId',
+      type: IsarType.string,
+    ),
+    r'chunkCount': PropertySchema(
+      id: 1,
       name: r'chunkCount',
       type: IsarType.long,
     ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'filePath': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'filePath',
       type: IsarType.string,
     ),
     r'fileSize': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'fileSize',
       type: IsarType.long,
     ),
     r'fileType': PropertySchema(
-      id: 4,
-      name: r'fileType',
-      type: IsarType.string,
-    ),
-    r'gemId': PropertySchema(
       id: 5,
-      name: r'gemId',
+      name: r'fileType',
       type: IsarType.string,
     ),
     r'metadataJson': PropertySchema(
@@ -82,14 +82,14 @@ const DocumentSchema = CollectionSchema(
         )
       ],
     ),
-    r'gemId': IndexSchema(
-      id: -4673659355794162112,
-      name: r'gemId',
+    r'acornId': IndexSchema(
+      id: -700436967602557961,
+      name: r'acornId',
       unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
-          name: r'gemId',
+          name: r'acornId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -110,9 +110,9 @@ int _documentEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.acornId.length * 3;
   bytesCount += 3 + object.filePath.length * 3;
   bytesCount += 3 + object.fileType.length * 3;
-  bytesCount += 3 + object.gemId.length * 3;
   {
     final value = object.metadataJson;
     if (value != null) {
@@ -130,12 +130,12 @@ void _documentSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeLong(offsets[0], object.chunkCount);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.filePath);
-  writer.writeLong(offsets[3], object.fileSize);
-  writer.writeString(offsets[4], object.fileType);
-  writer.writeString(offsets[5], object.gemId);
+  writer.writeString(offsets[0], object.acornId);
+  writer.writeLong(offsets[1], object.chunkCount);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeString(offsets[3], object.filePath);
+  writer.writeLong(offsets[4], object.fileSize);
+  writer.writeString(offsets[5], object.fileType);
   writer.writeString(offsets[6], object.metadataJson);
   writer.writeString(offsets[7], object.title);
   writer.writeString(offsets[8], object.uuid);
@@ -148,12 +148,12 @@ Document _documentDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Document();
-  object.chunkCount = reader.readLong(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
-  object.filePath = reader.readString(offsets[2]);
-  object.fileSize = reader.readLong(offsets[3]);
-  object.fileType = reader.readString(offsets[4]);
-  object.gemId = reader.readString(offsets[5]);
+  object.acornId = reader.readString(offsets[0]);
+  object.chunkCount = reader.readLong(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
+  object.filePath = reader.readString(offsets[3]);
+  object.fileSize = reader.readLong(offsets[4]);
+  object.fileType = reader.readString(offsets[5]);
   object.id = id;
   object.metadataJson = reader.readStringOrNull(offsets[6]);
   object.title = reader.readString(offsets[7]);
@@ -169,15 +169,15 @@ P _documentDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
-      return (reader.readString(offset)) as P;
-    case 3:
       return (reader.readLong(offset)) as P;
-    case 4:
+    case 2:
+      return (reader.readDateTime(offset)) as P;
+    case 3:
       return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readLong(offset)) as P;
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
@@ -321,45 +321,45 @@ extension DocumentQueryWhere on QueryBuilder<Document, Document, QWhereClause> {
     });
   }
 
-  QueryBuilder<Document, Document, QAfterWhereClause> gemIdEqualTo(
-      String gemId) {
+  QueryBuilder<Document, Document, QAfterWhereClause> acornIdEqualTo(
+      String acornId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'gemId',
-        value: [gemId],
+        indexName: r'acornId',
+        value: [acornId],
       ));
     });
   }
 
-  QueryBuilder<Document, Document, QAfterWhereClause> gemIdNotEqualTo(
-      String gemId) {
+  QueryBuilder<Document, Document, QAfterWhereClause> acornIdNotEqualTo(
+      String acornId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
+              indexName: r'acornId',
               lower: [],
-              upper: [gemId],
+              upper: [acornId],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
-              lower: [gemId],
+              indexName: r'acornId',
+              lower: [acornId],
               includeLower: false,
               upper: [],
             ));
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
-              lower: [gemId],
+              indexName: r'acornId',
+              lower: [acornId],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'gemId',
+              indexName: r'acornId',
               lower: [],
-              upper: [gemId],
+              upper: [acornId],
               includeUpper: false,
             ));
       }
@@ -369,6 +369,136 @@ extension DocumentQueryWhere on QueryBuilder<Document, Document, QWhereClause> {
 
 extension DocumentQueryFilter
     on QueryBuilder<Document, Document, QFilterCondition> {
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'acornId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'acornId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'acornId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'acornId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterFilterCondition> acornIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'acornId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Document, Document, QAfterFilterCondition> chunkCountEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -783,136 +913,6 @@ extension DocumentQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'fileType',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'gemId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'gemId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'gemId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'gemId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterFilterCondition> gemIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'gemId',
         value: '',
       ));
     });
@@ -1389,6 +1389,18 @@ extension DocumentQueryLinks
     on QueryBuilder<Document, Document, QFilterCondition> {}
 
 extension DocumentQuerySortBy on QueryBuilder<Document, Document, QSortBy> {
+  QueryBuilder<Document, Document, QAfterSortBy> sortByAcornId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterSortBy> sortByAcornIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Document, Document, QAfterSortBy> sortByChunkCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'chunkCount', Sort.asc);
@@ -1449,18 +1461,6 @@ extension DocumentQuerySortBy on QueryBuilder<Document, Document, QSortBy> {
     });
   }
 
-  QueryBuilder<Document, Document, QAfterSortBy> sortByGemId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterSortBy> sortByGemIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.desc);
-    });
-  }
-
   QueryBuilder<Document, Document, QAfterSortBy> sortByMetadataJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'metadataJson', Sort.asc);
@@ -1500,6 +1500,18 @@ extension DocumentQuerySortBy on QueryBuilder<Document, Document, QSortBy> {
 
 extension DocumentQuerySortThenBy
     on QueryBuilder<Document, Document, QSortThenBy> {
+  QueryBuilder<Document, Document, QAfterSortBy> thenByAcornId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Document, Document, QAfterSortBy> thenByAcornIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'acornId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Document, Document, QAfterSortBy> thenByChunkCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'chunkCount', Sort.asc);
@@ -1560,18 +1572,6 @@ extension DocumentQuerySortThenBy
     });
   }
 
-  QueryBuilder<Document, Document, QAfterSortBy> thenByGemId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Document, Document, QAfterSortBy> thenByGemIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'gemId', Sort.desc);
-    });
-  }
-
   QueryBuilder<Document, Document, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1623,6 +1623,13 @@ extension DocumentQuerySortThenBy
 
 extension DocumentQueryWhereDistinct
     on QueryBuilder<Document, Document, QDistinct> {
+  QueryBuilder<Document, Document, QDistinct> distinctByAcornId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'acornId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Document, Document, QDistinct> distinctByChunkCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'chunkCount');
@@ -1652,13 +1659,6 @@ extension DocumentQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'fileType', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Document, Document, QDistinct> distinctByGemId(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'gemId', caseSensitive: caseSensitive);
     });
   }
 
@@ -1692,6 +1692,12 @@ extension DocumentQueryProperty
     });
   }
 
+  QueryBuilder<Document, String, QQueryOperations> acornIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'acornId');
+    });
+  }
+
   QueryBuilder<Document, int, QQueryOperations> chunkCountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'chunkCount');
@@ -1719,12 +1725,6 @@ extension DocumentQueryProperty
   QueryBuilder<Document, String, QQueryOperations> fileTypeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fileType');
-    });
-  }
-
-  QueryBuilder<Document, String, QQueryOperations> gemIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'gemId');
     });
   }
 
