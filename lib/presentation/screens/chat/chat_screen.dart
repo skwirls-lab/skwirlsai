@@ -8,13 +8,16 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_helper.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/message.dart';
+import '../../../data/services/agent_mode_service.dart';
 import '../../../data/services/inference_service.dart';
 import '../../../data/services/rag_service.dart';
+import '../../../domain/entities/tool.dart';
 import '../../providers/conversation_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/gem_provider.dart';
 import '../../providers/model_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/tool_provider.dart';
 import '../../widgets/message_bubble.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -532,39 +535,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToBottom();
 
     try {
-      await for (final token in inferenceService.generateStream(
-        messages: chatMessages,
-        agentMode: _agentModeEnabled,
-        systemPrompt: systemPrompt,
-      )) {
-        setState(() {
-          _streamBuffer += token;
-        });
-        _scrollToBottom();
-      }
-
-      // Strip any leaked special tokens from the final response
-      var finalText = _streamBuffer;
-      for (final tok in _specialTokens) {
-        finalText = finalText.replaceAll(tok, '');
-      }
-      finalText = finalText.trim();
-
-      // Save assistant message
-      if (finalText.isNotEmpty) {
-        await convRepo.addMessage(
+      if (_agentModeEnabled) {
+        // Agent mode: use AgentModeService for tool calling loop
+        await _runAgentMode(
           conversationId: conversationId,
-          role: MessageRole.assistant,
-          content: finalText,
+          chatMessages: chatMessages,
+          systemPrompt: systemPrompt,
+          convRepo: convRepo,
         );
       } else {
-        _showSnackBar('Model returned an empty response. '
-            'Try a shorter prompt or increase the context size in Settings.');
-      }
+        // Normal mode: simple streaming
+        await for (final token in inferenceService.generateStream(
+          messages: chatMessages,
+          systemPrompt: systemPrompt,
+        )) {
+          setState(() {
+            _streamBuffer += token;
+          });
+          _scrollToBottom();
+        }
 
-      ref.invalidate(messagesForConversationProvider(conversationId));
-      // Wait for the provider to rebuild before hiding the streaming bubble
-      await Future.delayed(const Duration(milliseconds: 100));
+        // Strip any leaked special tokens from the final response
+        var finalText = _streamBuffer;
+        for (final tok in _specialTokens) {
+          finalText = finalText.replaceAll(tok, '');
+        }
+        finalText = finalText.trim();
+
+        // Save assistant message
+        if (finalText.isNotEmpty) {
+          await convRepo.addMessage(
+            conversationId: conversationId,
+            role: MessageRole.assistant,
+            content: finalText,
+          );
+        } else {
+          _showSnackBar('Model returned an empty response. '
+              'Try a shorter prompt or increase the context size in Settings.');
+        }
+
+        ref.invalidate(messagesForConversationProvider(conversationId));
+        // Wait for the provider to rebuild before hiding the streaming bubble
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('Context full') || msg.contains('Context limit') ||
@@ -581,6 +594,158 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
       _scrollToBottom();
     }
+  }
+
+  /// Run agent mode: generate → parse tool calls → execute → loop
+  Future<void> _runAgentMode({
+    required String conversationId,
+    required List<ChatMessage> chatMessages,
+    required String systemPrompt,
+    required dynamic convRepo,
+  }) async {
+    final agentService = ref.read(agentModeServiceProvider);
+    final toolRegistry = ref.read(toolRegistryProvider);
+
+    // Set up confirmation callback
+    agentService.onConfirmationRequired = (call) async {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Tool Requires Confirmation'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('The agent wants to execute:',
+                  style: AppTextStyles.body),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceHighlight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(call.toolName,
+                        style: AppTextStyles.label.copyWith(
+                            color: AppColors.teal,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(call.arguments.toString(),
+                        style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Deny'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.teal),
+              child: const Text('Allow'),
+            ),
+          ],
+        ),
+      );
+      return result ?? false;
+    };
+
+    String finalText = '';
+    String? thinkingContent;
+    final toolLog = StringBuffer();
+
+    await for (final event in agentService.run(
+      messages: chatMessages,
+      systemPrompt: systemPrompt,
+    )) {
+      switch (event.type) {
+        case AgentEventType.token:
+          setState(() {
+            _streamBuffer += event.text ?? '';
+          });
+          _scrollToBottom();
+          break;
+
+        case AgentEventType.thinking:
+          debugPrint('[Agent] Iteration ${event.iteration}');
+          break;
+
+        case AgentEventType.thinkingContent:
+          thinkingContent = event.text;
+          break;
+
+        case AgentEventType.toolExecuting:
+          final call = event.toolCall!;
+          debugPrint('[Agent] Executing tool: ${call.toolName}');
+          // Show tool execution in the stream
+          setState(() {
+            _streamBuffer += '\n🔧 *Using ${call.toolName}...*\n';
+          });
+          _scrollToBottom();
+          break;
+
+        case AgentEventType.toolResult:
+          final result = event.result!;
+          debugPrint('[Agent] Tool result: ${result.success} (${result.output.length} chars)');
+          toolLog.writeln('Tool: ${result.toolName}');
+          toolLog.writeln('Success: ${result.success}');
+          toolLog.writeln('Output: ${result.output.length > 200 ? '${result.output.substring(0, 200)}...' : result.output}');
+          toolLog.writeln('---');
+          break;
+
+        case AgentEventType.confirmationRequired:
+          debugPrint('[Agent] Confirmation required for: ${event.toolCall?.toolName}');
+          break;
+
+        case AgentEventType.finalAnswer:
+          finalText = event.text ?? '';
+          break;
+
+        case AgentEventType.maxIterationsReached:
+          _showSnackBar('Agent reached max iterations');
+          finalText = _streamBuffer;
+          break;
+
+        case AgentEventType.stopped:
+          finalText = _streamBuffer;
+          break;
+
+        case AgentEventType.error:
+          _showSnackBar('Agent error: ${event.text}');
+          finalText = _streamBuffer;
+          break;
+      }
+    }
+
+    // Strip special tokens
+    for (final tok in _specialTokens) {
+      finalText = finalText.replaceAll(tok, '');
+    }
+    // Strip tool-use indicators from final saved text
+    finalText = finalText.replaceAll(RegExp(r'🔧 \*Using [^*]+\.\.\.\*\n?'), '');
+    finalText = finalText.trim();
+
+    // Save assistant message with tool info
+    if (finalText.isNotEmpty) {
+      await convRepo.addMessage(
+        conversationId: conversationId,
+        role: MessageRole.assistant,
+        content: finalText,
+        thinkingContent: thinkingContent,
+        toolCallsJson: toolLog.isNotEmpty ? toolLog.toString() : null,
+      );
+    }
+
+    ref.invalidate(messagesForConversationProvider(conversationId));
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 
   String _buildSystemPrompt(dynamic activeAcorn, dynamic settings, {String? ragContext}) {

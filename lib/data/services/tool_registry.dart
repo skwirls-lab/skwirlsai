@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/tool.dart';
@@ -163,9 +164,153 @@ class ToolRegistry {
           success: true,
           output: results.isEmpty
               ? 'No relevant documents found.'
-              : results.map((r) => r.chunkText).join('\n\n---\n\n'),
+              : results.map((r) => '[doc:${r.documentId} chunk:${r.chunkIndex}] ${r.chunkText}').join('\n\n---\n\n'),
           executionTime: Duration.zero,
         );
+      },
+    );
+
+    // read_file - Read a file from disk
+    _register(
+      Tool(
+        name: 'read_file',
+        description: 'Read the contents of a file from disk. Returns the text content.',
+        category: ToolCategory.local,
+        parameters: {
+          'path': const ToolParameter(
+            type: 'string',
+            description: 'Absolute file path to read',
+            required: true,
+          ),
+        },
+      ),
+      (args) async {
+        final path = args['path'] as String;
+        try {
+          final file = File(path);
+          if (!await file.exists()) {
+            return ToolResult(
+              toolName: 'read_file',
+              success: false,
+              output: 'File not found: $path',
+              executionTime: Duration.zero,
+            );
+          }
+          final content = await file.readAsString();
+          // Limit output to avoid blowing context
+          final trimmed = content.length > 10000
+              ? '${content.substring(0, 10000)}\n[...truncated at 10000 chars, file is ${content.length} chars total]'
+              : content;
+          return ToolResult(
+            toolName: 'read_file',
+            success: true,
+            output: trimmed,
+            executionTime: Duration.zero,
+          );
+        } catch (e) {
+          return ToolResult(
+            toolName: 'read_file',
+            success: false,
+            output: 'Error reading file: $e',
+            executionTime: Duration.zero,
+          );
+        }
+      },
+    );
+
+    // list_files - List directory contents
+    _register(
+      Tool(
+        name: 'list_files',
+        description: 'List files and directories at a given path. Returns names, types, and sizes.',
+        category: ToolCategory.local,
+        parameters: {
+          'path': const ToolParameter(
+            type: 'string',
+            description: 'Absolute directory path to list',
+            required: true,
+          ),
+        },
+      ),
+      (args) async {
+        final path = args['path'] as String;
+        try {
+          final dir = Directory(path);
+          if (!await dir.exists()) {
+            return ToolResult(
+              toolName: 'list_files',
+              success: false,
+              output: 'Directory not found: $path',
+              executionTime: Duration.zero,
+            );
+          }
+          final entries = await dir.list().take(100).toList();
+          final lines = entries.map((e) {
+            final stat = e.statSync();
+            final type = stat.type == FileSystemEntityType.directory ? 'DIR' : 'FILE';
+            final size = stat.type == FileSystemEntityType.file
+                ? ' (${(stat.size / 1024).toStringAsFixed(1)} KB)'
+                : '';
+            return '[$type] ${e.path.split(Platform.pathSeparator).last}$size';
+          }).toList();
+          return ToolResult(
+            toolName: 'list_files',
+            success: true,
+            output: lines.isEmpty ? 'Directory is empty.' : lines.join('\n'),
+            executionTime: Duration.zero,
+          );
+        } catch (e) {
+          return ToolResult(
+            toolName: 'list_files',
+            success: false,
+            output: 'Error listing directory: $e',
+            executionTime: Duration.zero,
+          );
+        }
+      },
+    );
+
+    // write_file - Write content to a file (requires confirmation)
+    _register(
+      Tool(
+        name: 'write_file',
+        description: 'Write text content to a file. Creates the file if it does not exist, overwrites if it does.',
+        category: ToolCategory.externalWrite,
+        requiresConfirmation: true,
+        parameters: {
+          'path': const ToolParameter(
+            type: 'string',
+            description: 'Absolute file path to write to',
+            required: true,
+          ),
+          'content': const ToolParameter(
+            type: 'string',
+            description: 'Text content to write',
+            required: true,
+          ),
+        },
+      ),
+      (args) async {
+        final path = args['path'] as String;
+        final content = args['content'] as String;
+        try {
+          final file = File(path);
+          await file.parent.create(recursive: true);
+          await file.writeAsString(content);
+          return ToolResult(
+            toolName: 'write_file',
+            success: true,
+            output: 'Successfully wrote ${content.length} characters to $path',
+            executionTime: Duration.zero,
+          );
+        } catch (e) {
+          return ToolResult(
+            toolName: 'write_file',
+            success: false,
+            output: 'Error writing file: $e',
+            executionTime: Duration.zero,
+          );
+        }
       },
     );
 
