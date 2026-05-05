@@ -39,7 +39,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _focusNode = FocusNode();
 
   bool _isStreaming = false;
-  bool _agentModeEnabled = false;
   String _streamBuffer = '';
   bool _hasText = false;
   List<String> _attachedFiles = []; // file names of just-attached docs
@@ -121,22 +120,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
         centerTitle: true,
         actions: [
-          // Agent mode toggle
-          IconButton(
-            icon: Icon(
-              _agentModeEnabled
-                  ? Icons.auto_fix_high_rounded
-                  : Icons.auto_fix_normal,
-              size: 20,
-              color: _agentModeEnabled
-                  ? AppColors.teal
-                  : AppColors.textTertiary,
-            ),
-            tooltip: _agentModeEnabled ? 'Agent Mode ON' : 'Agent Mode OFF',
-            onPressed: () {
-              setState(() => _agentModeEnabled = !_agentModeEnabled);
-            },
-          ),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_horiz_rounded,
                 size: 20, color: AppColors.textTertiary),
@@ -152,26 +135,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Agent mode banner
-          if (_agentModeEnabled)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppColors.teal.withOpacity(0.1),
-              child: Row(
-                children: [
-                  const Icon(Icons.smart_toy_rounded,
-                      size: 16, color: AppColors.teal),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Agent Mode: AI can use tools and reason step-by-step',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.teal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           // Messages
           Expanded(
             child: messagesAsync.when(
@@ -344,9 +307,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             keyboardType: TextInputType.multiline,
                             textInputAction: TextInputAction.newline,
                             decoration: InputDecoration(
-                              hintText: _agentModeEnabled
-                                  ? 'Ask the agent...'
-                                  : 'Message SkwirlsAI...',
+                              hintText: 'Message SkwirlsAI...',
                               hintStyle: AppTextStyles.chatMessage.copyWith(
                                 color: AppColors.textTertiary,
                               ),
@@ -535,8 +496,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToBottom();
 
     try {
-      if (_agentModeEnabled) {
-        // Agent mode: use AgentModeService for tool calling loop
+      // Check if active acorn has any enabled + permitted skills
+      final acornSkills = activeAcorn?.enabledSkills ?? '';
+      final acornSkillSet = acornSkills.split(',')
+          .where((s) => s.trim().isNotEmpty).toSet();
+      final globalPerms = ref.read(skillPermissionsProvider);
+      final hasSkills = acornSkillSet.any((name) {
+        final perm = globalPerms[name];
+        return perm != null && perm.isAllowed;
+      });
+
+      if (hasSkills) {
+        // Acorn has SkwirlSkills: use AgentModeService for tool calling loop
         await _runAgentMode(
           conversationId: conversationId,
           chatMessages: chatMessages,
@@ -604,7 +575,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required dynamic convRepo,
   }) async {
     final agentService = ref.read(agentModeServiceProvider);
-    final toolRegistry = ref.read(toolRegistryProvider);
+    final skillPerms = ref.read(skillPermissionsProvider);
+
+    // Compute allowed tools: acorn enablement ∩ global permissions
+    final activeAcorn = ref.read(activeAcornProvider);
+    final acornSkillNames = (activeAcorn?.enabledSkills ?? '')
+        .split(',')
+        .where((s) => s.trim().isNotEmpty)
+        .toSet();
+    final allowedTools = acornSkillNames.where((name) {
+      final perm = skillPerms[name];
+      return perm != null && perm.isAllowed;
+    }).toSet();
+
+    debugPrint('[Agent] Allowed tools: $allowedTools');
 
     // Set up confirmation callback
     agentService.onConfirmationRequired = (call) async {
@@ -665,6 +649,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await for (final event in agentService.run(
       messages: chatMessages,
       systemPrompt: systemPrompt,
+      allowedToolNames: allowedTools.isNotEmpty ? allowedTools : null,
     )) {
       switch (event.type) {
         case AgentEventType.token:

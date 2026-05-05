@@ -56,6 +56,7 @@ class AcornRepository {
     String color = '#E3AB59',
     bool ragEnabled = false,
     bool agentModeDefault = false,
+    String enabledSkills = '',
     double? temperature,
     double? topP,
     int? topK,
@@ -72,6 +73,7 @@ class AcornRepository {
       ..updatedAt = now
       ..ragEnabled = ragEnabled
       ..agentModeDefault = agentModeDefault
+      ..enabledSkills = enabledSkills
       ..temperature = temperature
       ..topP = topP
       ..topK = topK

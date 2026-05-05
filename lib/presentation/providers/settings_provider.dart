@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
@@ -162,4 +163,127 @@ final settingsProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
   final prefs = ref.watch(sharedPrefsProvider);
   return SettingsNotifier(prefs);
+});
+
+/// Permission flags for a single SkwirlSkill
+class SkillPermission {
+  final bool read;
+  final bool write;
+  final bool network;
+
+  const SkillPermission({
+    this.read = true,
+    this.write = false,
+    this.network = false,
+  });
+
+  SkillPermission copyWith({bool? read, bool? write, bool? network}) =>
+      SkillPermission(
+        read: read ?? this.read,
+        write: write ?? this.write,
+        network: network ?? this.network,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'read': read,
+        'write': write,
+        'network': network,
+      };
+
+  factory SkillPermission.fromJson(Map<String, dynamic> json) =>
+      SkillPermission(
+        read: json['read'] as bool? ?? true,
+        write: json['write'] as bool? ?? false,
+        network: json['network'] as bool? ?? false,
+      );
+
+  /// Whether any permission is granted
+  bool get isAllowed => read || write || network;
+}
+
+/// Default permissions per skill (safe defaults — read-only local tools on)
+const _defaultSkillPermissions = <String, SkillPermission>{
+  'search_svl_docs': SkillPermission(read: true),
+  'read_file': SkillPermission(read: true),
+  'list_files': SkillPermission(read: true),
+  'write_file': SkillPermission(write: false),
+  'web_search': SkillPermission(network: false),
+  'list_google_calendar_events': SkillPermission(read: false, network: false),
+  'search_gmail': SkillPermission(read: false, network: false),
+  'get_recent_emails': SkillPermission(read: false, network: false),
+  'generate_image': SkillPermission(read: true),
+};
+
+class SkillPermissionsNotifier
+    extends StateNotifier<Map<String, SkillPermission>> {
+  final SharedPreferences _prefs;
+  static const _key = 'skillPermissions';
+
+  SkillPermissionsNotifier(this._prefs)
+      : super(Map.from(_defaultSkillPermissions)) {
+    _load();
+  }
+
+  void _load() {
+    final raw = _prefs.getString(_key);
+    if (raw != null) {
+      try {
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        final loaded = <String, SkillPermission>{};
+        // Start with defaults, then overlay saved values
+        for (final entry in _defaultSkillPermissions.entries) {
+          if (map.containsKey(entry.key)) {
+            loaded[entry.key] = SkillPermission.fromJson(
+                map[entry.key] as Map<String, dynamic>);
+          } else {
+            loaded[entry.key] = entry.value;
+          }
+        }
+        state = loaded;
+      } catch (_) {
+        state = Map.from(_defaultSkillPermissions);
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    final map = state.map((k, v) => MapEntry(k, v.toJson()));
+    await _prefs.setString(_key, jsonEncode(map));
+  }
+
+  Future<void> setPermission(
+      String skillName, SkillPermission permission) async {
+    final updated = Map<String, SkillPermission>.from(state);
+    updated[skillName] = permission;
+    state = updated;
+    await _save();
+  }
+
+  Future<void> toggleRead(String skillName) async {
+    final current = state[skillName] ?? const SkillPermission();
+    await setPermission(skillName, current.copyWith(read: !current.read));
+  }
+
+  Future<void> toggleWrite(String skillName) async {
+    final current = state[skillName] ?? const SkillPermission();
+    await setPermission(skillName, current.copyWith(write: !current.write));
+  }
+
+  Future<void> toggleNetwork(String skillName) async {
+    final current = state[skillName] ?? const SkillPermission();
+    await setPermission(
+        skillName, current.copyWith(network: !current.network));
+  }
+
+  /// Check if a skill is globally permitted (any permission flag is on)
+  bool isSkillPermitted(String skillName) {
+    final perm = state[skillName];
+    return perm?.isAllowed ?? false;
+  }
+}
+
+final skillPermissionsProvider = StateNotifierProvider<
+    SkillPermissionsNotifier, Map<String, SkillPermission>>((ref) {
+  final prefs = ref.watch(sharedPrefsProvider);
+  return SkillPermissionsNotifier(prefs);
 });

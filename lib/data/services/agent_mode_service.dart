@@ -30,9 +30,11 @@ class AgentModeService {
         _toolRegistry = toolRegistry;
 
   /// Run agent mode: generate, parse tool calls, execute, loop
+  /// If [allowedToolNames] is provided, only those tools are made available.
   Stream<AgentEvent> run({
     required List<ChatMessage> messages,
     String? systemPrompt,
+    Set<String>? allowedToolNames,
   }) async* {
     _isRunning = true;
     _currentIteration = 0;
@@ -50,11 +52,15 @@ class AgentModeService {
         final responseBuffer = StringBuffer();
         String? thinkingContent;
 
+        final toolSchemas = allowedToolNames != null
+            ? _toolRegistry.getFilteredToolSchemas(allowedToolNames)
+            : _toolRegistry.toolSchemas;
+
         await for (final token in _inferenceService.generateStream(
           messages: conversationMessages,
           agentMode: true,
           systemPrompt: systemPrompt,
-          tools: _toolRegistry.toolSchemas,
+          tools: toolSchemas,
         )) {
           responseBuffer.write(token);
           yield AgentEvent.token(token);

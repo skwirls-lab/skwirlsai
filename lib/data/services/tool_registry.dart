@@ -35,6 +35,17 @@ class ToolRegistry {
   List<Map<String, dynamic>> get toolSchemas =>
       _tools.values.map((t) => t.toFunctionSchema()).toList();
 
+  /// Get filtered tool schemas for a specific set of allowed skill names
+  List<Map<String, dynamic>> getFilteredToolSchemas(Set<String> allowedNames) =>
+      _tools.values
+          .where((t) => allowedNames.contains(t.name))
+          .map((t) => t.toFunctionSchema())
+          .toList();
+
+  /// Get filtered tools by name
+  List<Tool> getFilteredTools(Set<String> allowedNames) =>
+      _tools.values.where((t) => allowedNames.contains(t.name)).toList();
+
   /// Execute a tool call with safety guardrails
   Future<ToolResult> executeTool(ToolCall call) async {
     final tool = _tools[call.toolName];

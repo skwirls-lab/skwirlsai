@@ -32,63 +32,68 @@ const AcornSchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'icon': PropertySchema(
+    r'enabledSkills': PropertySchema(
       id: 3,
+      name: r'enabledSkills',
+      type: IsarType.string,
+    ),
+    r'icon': PropertySchema(
+      id: 4,
       name: r'icon',
       type: IsarType.string,
     ),
     r'isDefault': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'isDefault',
       type: IsarType.bool,
     ),
     r'maxTokens': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'maxTokens',
       type: IsarType.long,
     ),
     r'name': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
     r'ragEnabled': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'ragEnabled',
       type: IsarType.bool,
     ),
     r'syncVersion': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'syncVersion',
       type: IsarType.long,
     ),
     r'systemPrompt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'systemPrompt',
       type: IsarType.string,
     ),
     r'temperature': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'temperature',
       type: IsarType.double,
     ),
     r'topK': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'topK',
       type: IsarType.long,
     ),
     r'topP': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'topP',
       type: IsarType.double,
     ),
     r'updatedAt': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'uuid': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'uuid',
       type: IsarType.string,
     )
@@ -128,6 +133,7 @@ int _acornEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.color.length * 3;
+  bytesCount += 3 + object.enabledSkills.length * 3;
   bytesCount += 3 + object.icon.length * 3;
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.systemPrompt.length * 3;
@@ -144,18 +150,19 @@ void _acornSerialize(
   writer.writeBool(offsets[0], object.agentModeDefault);
   writer.writeString(offsets[1], object.color);
   writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.icon);
-  writer.writeBool(offsets[4], object.isDefault);
-  writer.writeLong(offsets[5], object.maxTokens);
-  writer.writeString(offsets[6], object.name);
-  writer.writeBool(offsets[7], object.ragEnabled);
-  writer.writeLong(offsets[8], object.syncVersion);
-  writer.writeString(offsets[9], object.systemPrompt);
-  writer.writeDouble(offsets[10], object.temperature);
-  writer.writeLong(offsets[11], object.topK);
-  writer.writeDouble(offsets[12], object.topP);
-  writer.writeDateTime(offsets[13], object.updatedAt);
-  writer.writeString(offsets[14], object.uuid);
+  writer.writeString(offsets[3], object.enabledSkills);
+  writer.writeString(offsets[4], object.icon);
+  writer.writeBool(offsets[5], object.isDefault);
+  writer.writeLong(offsets[6], object.maxTokens);
+  writer.writeString(offsets[7], object.name);
+  writer.writeBool(offsets[8], object.ragEnabled);
+  writer.writeLong(offsets[9], object.syncVersion);
+  writer.writeString(offsets[10], object.systemPrompt);
+  writer.writeDouble(offsets[11], object.temperature);
+  writer.writeLong(offsets[12], object.topK);
+  writer.writeDouble(offsets[13], object.topP);
+  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeString(offsets[15], object.uuid);
 }
 
 Acorn _acornDeserialize(
@@ -168,19 +175,20 @@ Acorn _acornDeserialize(
   object.agentModeDefault = reader.readBool(offsets[0]);
   object.color = reader.readString(offsets[1]);
   object.createdAt = reader.readDateTime(offsets[2]);
-  object.icon = reader.readString(offsets[3]);
+  object.enabledSkills = reader.readString(offsets[3]);
+  object.icon = reader.readString(offsets[4]);
   object.id = id;
-  object.isDefault = reader.readBool(offsets[4]);
-  object.maxTokens = reader.readLongOrNull(offsets[5]);
-  object.name = reader.readString(offsets[6]);
-  object.ragEnabled = reader.readBool(offsets[7]);
-  object.syncVersion = reader.readLong(offsets[8]);
-  object.systemPrompt = reader.readString(offsets[9]);
-  object.temperature = reader.readDoubleOrNull(offsets[10]);
-  object.topK = reader.readLongOrNull(offsets[11]);
-  object.topP = reader.readDoubleOrNull(offsets[12]);
-  object.updatedAt = reader.readDateTime(offsets[13]);
-  object.uuid = reader.readString(offsets[14]);
+  object.isDefault = reader.readBool(offsets[5]);
+  object.maxTokens = reader.readLongOrNull(offsets[6]);
+  object.name = reader.readString(offsets[7]);
+  object.ragEnabled = reader.readBool(offsets[8]);
+  object.syncVersion = reader.readLong(offsets[9]);
+  object.systemPrompt = reader.readString(offsets[10]);
+  object.temperature = reader.readDoubleOrNull(offsets[11]);
+  object.topK = reader.readLongOrNull(offsets[12]);
+  object.topP = reader.readDoubleOrNull(offsets[13]);
+  object.updatedAt = reader.readDateTime(offsets[14]);
+  object.uuid = reader.readString(offsets[15]);
   return object;
 }
 
@@ -200,26 +208,28 @@ P _acornDeserializeProp<P>(
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readLongOrNull(offset)) as P;
-    case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
       return (reader.readBool(offset)) as P;
-    case 8:
-      return (reader.readLong(offset)) as P;
-    case 9:
-      return (reader.readString(offset)) as P;
-    case 10:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 11:
+    case 6:
       return (reader.readLongOrNull(offset)) as P;
-    case 12:
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readBool(offset)) as P;
+    case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
+    case 11:
       return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
+      return (reader.readLongOrNull(offset)) as P;
     case 13:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 14:
+      return (reader.readDateTime(offset)) as P;
+    case 15:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -598,6 +608,136 @@ extension AcornQueryFilter on QueryBuilder<Acorn, Acorn, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'enabledSkills',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'enabledSkills',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'enabledSkills',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'enabledSkills',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'enabledSkills',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'enabledSkills',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'enabledSkills',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'enabledSkills',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'enabledSkills',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterFilterCondition> enabledSkillsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'enabledSkills',
+        value: '',
       ));
     });
   }
@@ -1629,6 +1769,18 @@ extension AcornQuerySortBy on QueryBuilder<Acorn, Acorn, QSortBy> {
     });
   }
 
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByEnabledSkills() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enabledSkills', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByEnabledSkillsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enabledSkills', Sort.desc);
+    });
+  }
+
   QueryBuilder<Acorn, Acorn, QAfterSortBy> sortByIcon() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'icon', Sort.asc);
@@ -1811,6 +1963,18 @@ extension AcornQuerySortThenBy on QueryBuilder<Acorn, Acorn, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByEnabledSkills() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enabledSkills', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByEnabledSkillsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enabledSkills', Sort.desc);
+    });
+  }
+
   QueryBuilder<Acorn, Acorn, QAfterSortBy> thenByIcon() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'icon', Sort.asc);
@@ -1988,6 +2152,14 @@ extension AcornQueryWhereDistinct on QueryBuilder<Acorn, Acorn, QDistinct> {
     });
   }
 
+  QueryBuilder<Acorn, Acorn, QDistinct> distinctByEnabledSkills(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'enabledSkills',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Acorn, Acorn, QDistinct> distinctByIcon(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2087,6 +2259,12 @@ extension AcornQueryProperty on QueryBuilder<Acorn, Acorn, QQueryProperty> {
   QueryBuilder<Acorn, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<Acorn, String, QQueryOperations> enabledSkillsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'enabledSkills');
     });
   }
 

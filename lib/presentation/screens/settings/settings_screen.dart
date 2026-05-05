@@ -16,6 +16,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../../data/services/sync_service.dart' show SyncStatus;
 import '../models/model_management_screen.dart';
+import 'skwirl_skills_permissions_screen.dart';
 
 Future<void> _exportChatHistory(BuildContext context, WidgetRef ref) async {
   try {
@@ -340,13 +341,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
 
-          // Advanced
-          _SectionHeader('Advanced'),
-          SwitchListTile(
-            title: const Text('Agent Mode by Default'),
-            subtitle: const Text('Enable tool use in all new conversations'),
-            value: settings.agentModeDefault,
-            onChanged: (v) => settingsNotifier.setAgentModeDefault(v),
+          // SkwirlSkills
+          _SectionHeader('SkwirlSkills'),
+          ListTile(
+            leading: const Icon(Icons.extension_rounded,
+                color: AppColors.teal),
+            title: const Text('SkwirlSkills Permissions'),
+            subtitle: const Text(
+                'Control which skills are allowed globally'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const SkwirlSkillsPermissionsScreen()),
+              );
+            },
           ),
           SwitchListTile(
             title: const Text('RAG Enabled'),

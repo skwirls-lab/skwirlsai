@@ -29,6 +29,9 @@ class Acorn {
   /// Whether agent mode is enabled by default for this Acorn
   bool agentModeDefault = false;
 
+  /// Comma-separated list of enabled SkwirlSkill names for this Acorn
+  String enabledSkills = '';
+
   /// Per-Acorn generation settings overrides (null = use global defaults)
   double? temperature;
   double? topP;
@@ -51,6 +54,7 @@ class Acorn {
         'updatedAt': updatedAt.toIso8601String(),
         'ragEnabled': ragEnabled,
         'agentModeDefault': agentModeDefault,
+        'enabledSkills': enabledSkills,
         'temperature': temperature,
         'topP': topP,
         'topK': topK,
@@ -70,6 +74,7 @@ class Acorn {
       ..updatedAt = DateTime.parse(json['updatedAt'] as String)
       ..ragEnabled = json['ragEnabled'] as bool? ?? false
       ..agentModeDefault = json['agentModeDefault'] as bool? ?? false
+      ..enabledSkills = json['enabledSkills'] as String? ?? ''
       ..temperature = (json['temperature'] as num?)?.toDouble()
       ..topP = (json['topP'] as num?)?.toDouble()
       ..topK = json['topK'] as int?
@@ -90,6 +95,7 @@ class Acorn {
         ..color = '#58AFAE'
         ..createdAt = now
         ..updatedAt = now
+        ..enabledSkills = 'search_svl_docs,read_file,list_files'
         ..isDefault = true,
       Acorn()
         ..uuid = 'acorn-code-helper'
@@ -100,6 +106,7 @@ class Acorn {
         ..color = '#E3AB59'
         ..createdAt = now
         ..updatedAt = now
+        ..enabledSkills = 'search_svl_docs,read_file,list_files'
         ..isDefault = true,
       Acorn()
         ..uuid = 'acorn-social-media'
@@ -110,6 +117,7 @@ class Acorn {
         ..color = '#E3AB59'
         ..createdAt = now
         ..updatedAt = now
+        ..enabledSkills = 'search_svl_docs,web_search'
         ..agentModeDefault = true
         ..isDefault = true,
       Acorn()
@@ -121,6 +129,7 @@ class Acorn {
         ..color = '#58AFAE'
         ..createdAt = now
         ..updatedAt = now
+        ..enabledSkills = 'search_svl_docs,read_file,list_files,web_search'
         ..agentModeDefault = true
         ..isDefault = true,
     ];

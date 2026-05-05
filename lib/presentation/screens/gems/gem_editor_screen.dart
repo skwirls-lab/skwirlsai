@@ -9,8 +9,11 @@ import '../../../data/models/document.dart';
 import '../../../data/models/gem.dart';
 import '../../../data/repositories/document_repository.dart';
 import '../../../data/services/rag_service.dart';
+import '../../../domain/entities/tool.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/gem_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../../providers/tool_provider.dart';
 
 class AcornEditorScreen extends ConsumerStatefulWidget {
   final Acorn? existingAcorn;
@@ -33,7 +36,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
   late String _selectedIcon;
   late String _selectedColor;
   late bool _ragEnabled;
-  late bool _agentModeDefault;
+  late Set<String> _enabledSkills;
   List<Document> _documents = [];
   bool _loadingDocs = false;
 
@@ -61,7 +64,10 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
     _selectedIcon = widget.existingAcorn?.icon ?? '🌰';
     _selectedColor = widget.existingAcorn?.color ?? '#E3AB59';
     _ragEnabled = widget.existingAcorn?.ragEnabled ?? false;
-    _agentModeDefault = widget.existingAcorn?.agentModeDefault ?? false;
+    _enabledSkills = (widget.existingAcorn?.enabledSkills ?? '')
+        .split(',')
+        .where((s) => s.trim().isNotEmpty)
+        .toSet();
     if (_isEditing) _loadDocuments();
   }
 
@@ -180,13 +186,9 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
               value: _ragEnabled,
               onChanged: (v) => setState(() => _ragEnabled = v),
             ),
-            SwitchListTile(
-              title: const Text('Agent Mode Default'),
-              subtitle: const Text(
-                  'Enable tool use by default in this Acorn'),
-              value: _agentModeDefault,
-              onChanged: (v) => setState(() => _agentModeDefault = v),
-            ),
+            const SizedBox(height: 8),
+            // SkwirlSkills
+            ..._buildSkwirlSkillsSection(),
             if (_ragEnabled) ..._buildKnowledgeBaseSection(),
           ],
         ),
@@ -206,7 +208,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
       acorn.icon = _selectedIcon;
       acorn.color = _selectedColor;
       acorn.ragEnabled = _ragEnabled;
-      acorn.agentModeDefault = _agentModeDefault;
+      acorn.enabledSkills = _enabledSkills.join(',');
       await acornRepo.updateAcorn(acorn);
     } else {
       await acornRepo.createAcorn(
@@ -215,7 +217,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
         icon: _selectedIcon,
         color: _selectedColor,
         ragEnabled: _ragEnabled,
-        agentModeDefault: _agentModeDefault,
+        enabledSkills: _enabledSkills.join(','),
       );
     }
 
@@ -268,6 +270,131 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
     final docRepo = DocumentRepository(isar: isar);
     await docRepo.deleteDocument(doc.uuid);
     _loadDocuments();
+  }
+
+  List<Widget> _buildSkwirlSkillsSection() {
+    final toolRegistry = ref.read(toolRegistryProvider);
+    final allTools = toolRegistry.tools;
+
+    // Friendly display names for tools
+    const toolDisplayNames = {
+      'search_svl_docs': 'Search Knowledge Base',
+      'read_file': 'Read Files',
+      'list_files': 'List Directories',
+      'write_file': 'Write Files',
+      'web_search': 'Web Search',
+      'list_google_calendar_events': 'Google Calendar',
+      'search_gmail': 'Search Gmail',
+      'get_recent_emails': 'Recent Emails',
+      'generate_image': 'Image Generation',
+    };
+
+    const toolIcons = {
+      'search_svl_docs': Icons.search_rounded,
+      'read_file': Icons.file_open_outlined,
+      'list_files': Icons.folder_open_rounded,
+      'write_file': Icons.edit_note_rounded,
+      'web_search': Icons.language_rounded,
+      'list_google_calendar_events': Icons.calendar_month_rounded,
+      'search_gmail': Icons.email_outlined,
+      'get_recent_emails': Icons.inbox_rounded,
+      'generate_image': Icons.image_outlined,
+    };
+
+    return [
+      const SizedBox(height: 12),
+      Text('SkwirlSkills', style: AppTextStyles.label),
+      const SizedBox(height: 4),
+      Text(
+        'Choose which skills this Acorn can use',
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+      ),
+      const SizedBox(height: 8),
+      Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Column(
+          children: allTools.map((tool) {
+            final isEnabled = _enabledSkills.contains(tool.name);
+            final displayName = toolDisplayNames[tool.name] ?? tool.name;
+            final icon = toolIcons[tool.name] ?? Icons.extension_rounded;
+            final needsConfirm = tool.requiresConfirmation;
+            final globalPerms = ref.watch(skillPermissionsProvider);
+            final perm = globalPerms[tool.name];
+            final isGloballyBlocked = perm == null || !perm.isAllowed;
+
+            return SwitchListTile(
+              secondary: Icon(icon,
+                  size: 20,
+                  color: isGloballyBlocked
+                      ? AppColors.textTertiary.withOpacity(0.4)
+                      : isEnabled
+                          ? AppColors.teal
+                          : AppColors.textTertiary),
+              title: Row(
+                children: [
+                  Text(displayName,
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: isGloballyBlocked
+                              ? AppColors.textTertiary.withOpacity(0.5)
+                              : null)),
+                  if (isGloballyBlocked) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('blocked',
+                          style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.error, fontSize: 10)),
+                    ),
+                  ] else if (needsConfirm) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.amber.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('confirm',
+                          style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.amber, fontSize: 10)),
+                    ),
+                  ],
+                ],
+              ),
+              subtitle: Text(
+                  isGloballyBlocked
+                      ? 'Blocked in Settings > SkwirlSkills Permissions'
+                      : tool.description,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.textTertiary, fontSize: 11)),
+              value: isEnabled && !isGloballyBlocked,
+              dense: true,
+              activeColor: AppColors.teal,
+              onChanged: isGloballyBlocked
+                  ? null
+                  : (v) {
+                      setState(() {
+                        if (v) {
+                          _enabledSkills.add(tool.name);
+                        } else {
+                          _enabledSkills.remove(tool.name);
+                        }
+                      });
+                    },
+            );
+          }).toList(),
+        ),
+      ),
+    ];
   }
 
   List<Widget> _buildKnowledgeBaseSection() {
