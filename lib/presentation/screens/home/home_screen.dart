@@ -604,6 +604,7 @@ class _ChatListView extends ConsumerWidget {
       position: RelativeRect.fromLTRB(
           position.dx, position.dy, position.dx + 1, position.dy + 1),
       items: [
+        const PopupMenuItem(value: 'rename', child: Text('Rename')),
         PopupMenuItem(
           value: 'pin',
           child: Text(conv.isPinned ? 'Unpin' : 'Pin'),
@@ -615,7 +616,9 @@ class _ChatListView extends ConsumerWidget {
         ),
       ],
     ).then((value) async {
-      if (value == 'pin') {
+      if (value == 'rename') {
+        _showRenameConversationDialog(context, ref, conv);
+      } else if (value == 'pin') {
         await ref
             .read(conversationRepositoryProvider)
             .togglePin(conv.uuid);
@@ -660,5 +663,49 @@ class _ChatListView extends ConsumerWidget {
         }
       }
     });
+  }
+
+  void _showRenameConversationDialog(
+      BuildContext context, WidgetRef ref, dynamic conv) {
+    final controller = TextEditingController(text: conv.title ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Conversation'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Enter new name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                await ref
+                    .read(conversationRepositoryProvider)
+                    .updateTitle(conv.uuid, controller.text.trim());
+                // Refresh active conversation if it's the one being renamed
+                if (ref.read(activeConversationProvider)?.uuid == conv.uuid) {
+                  final updated = await ref
+                      .read(conversationRepositoryProvider)
+                      .getConversation(conv.uuid);
+                  if (updated != null) {
+                    ref.read(activeConversationProvider.notifier).state =
+                        updated;
+                  }
+                }
+                ref.invalidate(conversationsForAcornProvider(conv.acornId));
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Rename'),
+          ),
+        ],
+      ),
+    );
   }
 }

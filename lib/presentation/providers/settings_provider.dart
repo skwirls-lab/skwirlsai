@@ -264,3 +264,78 @@ final skillPermissionsProvider = StateNotifierProvider<
   final prefs = ref.watch(sharedPrefsProvider);
   return SkillPermissionsNotifier(prefs);
 });
+
+/// Saved remote endpoint
+class SavedEndpoint {
+  final String name;
+  final String baseUrl;
+  final String? modelName;
+  final String? apiKey;
+
+  const SavedEndpoint({
+    required this.name,
+    required this.baseUrl,
+    this.modelName,
+    this.apiKey,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'baseUrl': baseUrl,
+        'modelName': modelName,
+        'apiKey': apiKey,
+      };
+
+  factory SavedEndpoint.fromJson(Map<String, dynamic> json) => SavedEndpoint(
+        name: json['name'] as String? ?? '',
+        baseUrl: json['baseUrl'] as String? ?? '',
+        modelName: json['modelName'] as String?,
+        apiKey: json['apiKey'] as String?,
+      );
+}
+
+class SavedEndpointsNotifier extends StateNotifier<List<SavedEndpoint>> {
+  final SharedPreferences _prefs;
+  static const _key = 'savedEndpoints';
+
+  SavedEndpointsNotifier(this._prefs) : super([]) {
+    _load();
+  }
+
+  void _load() {
+    final raw = _prefs.getString(_key);
+    if (raw != null) {
+      try {
+        final list = jsonDecode(raw) as List;
+        state = list
+            .map((e) => SavedEndpoint.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {
+        state = [];
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    await _prefs.setString(
+        _key, jsonEncode(state.map((e) => e.toJson()).toList()));
+  }
+
+  Future<void> addEndpoint(SavedEndpoint endpoint) async {
+    state = [...state, endpoint];
+    await _save();
+  }
+
+  Future<void> removeEndpoint(int index) async {
+    final updated = List<SavedEndpoint>.from(state);
+    updated.removeAt(index);
+    state = updated;
+    await _save();
+  }
+}
+
+final savedEndpointsProvider =
+    StateNotifierProvider<SavedEndpointsNotifier, List<SavedEndpoint>>((ref) {
+  final prefs = ref.watch(sharedPrefsProvider);
+  return SavedEndpointsNotifier(prefs);
+});

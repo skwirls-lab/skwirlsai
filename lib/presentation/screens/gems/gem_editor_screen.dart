@@ -189,7 +189,25 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
             const SizedBox(height: 8),
             // SkwirlSkills
             ..._buildSkwirlSkillsSection(),
-            if (_ragEnabled) ..._buildKnowledgeBaseSection(),
+            if (_ragEnabled && _isEditing) ..._buildKnowledgeBaseSection(),
+            if (_ragEnabled && !_isEditing)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 16, color: AppColors.textTertiary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You can add documents to the knowledge base after saving this Acorn.',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textTertiary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

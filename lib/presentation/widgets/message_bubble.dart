@@ -8,6 +8,8 @@ import '../../data/models/message.dart';
 class MessageBubble extends StatefulWidget {
   final Message message;
   final bool isStreaming;
+  final double fontSize;
+  final bool compact;
   final VoidCallback? onCopy;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -17,6 +19,8 @@ class MessageBubble extends StatefulWidget {
     super.key,
     required this.message,
     this.isStreaming = false,
+    this.fontSize = 15.0,
+    this.compact = false,
     this.onCopy,
     this.onEdit,
     this.onDelete,
@@ -39,14 +43,18 @@ class _MessageBubbleState extends State<MessageBubble> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: Container(
+      child: Stack(
+        children: [
+        Container(
         width: double.infinity,
         color: _isUser ? Colors.transparent : AppColors.surface,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 768),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: widget.compact ? 8 : 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -127,13 +135,15 @@ class _MessageBubbleState extends State<MessageBubble> {
                         if (_isUser)
                           SelectableText(
                             widget.message.content,
-                            style: AppTextStyles.chatMessage,
+                            style: AppTextStyles.chatMessage
+                                .copyWith(fontSize: widget.fontSize),
                           )
                         else
                           MarkdownBody(
                             data: widget.message.content,
                             selectable: true,
-                            styleSheet: _markdownStyleSheet(context),
+                            styleSheet:
+                                _markdownStyleSheet(context, widget.fontSize),
                           ),
                         // Streaming indicator
                         if (widget.isStreaming &&
@@ -160,18 +170,6 @@ class _MessageBubbleState extends State<MessageBubble> {
                               ),
                             ),
                           ),
-                        // Actions row — show on hover or always on mobile
-                        if (_hovering || widget.isStreaming)
-                          _ActionsRow(
-                            isUser: _isUser,
-                            isSystem: _isSystem,
-                            isTool: _isTool,
-                            content: widget.message.content,
-                            onCopy: widget.onCopy,
-                            onEdit: widget.onEdit,
-                            onDelete: widget.onDelete,
-                            onRegenerate: widget.onRegenerate,
-                          ),
                       ],
                     ),
                   ),
@@ -180,13 +178,32 @@ class _MessageBubbleState extends State<MessageBubble> {
             ),
           ),
         ),
+        ),
+        // Actions overlay — positioned at top-right, doesn't shift content
+        if (_hovering && !widget.isStreaming)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _ActionsRow(
+              isUser: _isUser,
+              isSystem: _isSystem,
+              isTool: _isTool,
+              content: widget.message.content,
+              onCopy: widget.onCopy,
+              onEdit: widget.onEdit,
+              onDelete: widget.onDelete,
+              onRegenerate: widget.onRegenerate,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  MarkdownStyleSheet _markdownStyleSheet(BuildContext context) {
+  MarkdownStyleSheet _markdownStyleSheet(BuildContext context, double fontSize) {
+    final chatStyle = AppTextStyles.chatMessage.copyWith(fontSize: fontSize);
     return MarkdownStyleSheet(
-      p: AppTextStyles.chatMessage,
+      p: chatStyle,
       h1: AppTextStyles.h1,
       h2: AppTextStyles.h2,
       h3: AppTextStyles.h3,
@@ -196,10 +213,9 @@ class _MessageBubbleState extends State<MessageBubble> {
           fontWeight: FontWeight.w600, fontSize: 14),
       h6: AppTextStyles.body.copyWith(
           fontWeight: FontWeight.w500, fontSize: 13),
-      em: AppTextStyles.chatMessage.copyWith(fontStyle: FontStyle.italic),
-      strong:
-          AppTextStyles.chatMessage.copyWith(fontWeight: FontWeight.w700),
-      blockquote: AppTextStyles.chatMessage.copyWith(
+      em: chatStyle.copyWith(fontStyle: FontStyle.italic),
+      strong: chatStyle.copyWith(fontWeight: FontWeight.w700),
+      blockquote: chatStyle.copyWith(
         color: AppColors.textSecondary,
         fontStyle: FontStyle.italic,
       ),
@@ -224,7 +240,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         border: Border.all(color: AppColors.divider),
       ),
       codeblockPadding: const EdgeInsets.all(14),
-      listBullet: AppTextStyles.chatMessage,
+      listBullet: chatStyle,
       tableHead: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
       tableBody: AppTextStyles.body,
       tableBorder: TableBorder.all(color: AppColors.divider, width: 1),
@@ -235,7 +251,7 @@ class _MessageBubbleState extends State<MessageBubble> {
           top: BorderSide(color: AppColors.divider, width: 1),
         ),
       ),
-      a: AppTextStyles.chatMessage.copyWith(
+      a: chatStyle.copyWith(
         color: AppColors.teal,
         decoration: TextDecoration.underline,
       ),
@@ -313,8 +329,20 @@ class _ActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isSystem || isTool) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

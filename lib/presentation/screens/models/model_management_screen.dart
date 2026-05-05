@@ -119,6 +119,10 @@ class _ModelManagementScreenState
             ),
             isConnecting: _isConnecting,
           ),
+          const SizedBox(height: 8),
+
+          // Saved endpoints
+          ..._buildSavedEndpoints(),
 
           const SizedBox(height: 24),
 
@@ -299,23 +303,91 @@ class _ModelManagementScreenState
           ),
           ElevatedButton(
             onPressed: () {
+              final url = urlController.text.trim();
+              final model = modelController.text.trim();
+              final key = keyController.text.trim();
+              final name = nameController.text.trim();
+              final displayName = name.isEmpty ? url : name;
+
+              // Save the endpoint for future use
+              ref.read(savedEndpointsProvider.notifier).addEndpoint(
+                    SavedEndpoint(
+                      name: displayName,
+                      baseUrl: url,
+                      modelName: model.isEmpty ? null : model,
+                      apiKey: key.isEmpty ? null : key,
+                    ),
+                  );
+
               Navigator.pop(ctx);
               _connectRemote(
-                baseUrl: urlController.text.trim(),
-                modelName: modelController.text.trim(),
-                apiKey: keyController.text.trim().isEmpty
-                    ? null
-                    : keyController.text.trim(),
-                displayName: nameController.text.trim().isEmpty
-                    ? urlController.text.trim()
-                    : nameController.text.trim(),
+                baseUrl: url,
+                modelName: model,
+                apiKey: key.isEmpty ? null : key,
+                displayName: displayName,
               );
             },
-            child: const Text('Connect'),
+            child: const Text('Save & Connect'),
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildSavedEndpoints() {
+    final saved = ref.watch(savedEndpointsProvider);
+    if (saved.isEmpty) return [];
+
+    return [
+      const SizedBox(height: 8),
+      Text('Saved Endpoints',
+          style: AppTextStyles.label.copyWith(color: AppColors.textSecondary)),
+      const SizedBox(height: 4),
+      ...saved.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final ep = entry.value;
+        return Card(
+          color: AppColors.surfaceLight,
+          margin: const EdgeInsets.only(bottom: 6),
+          child: ListTile(
+            dense: true,
+            leading:
+                const Icon(Icons.link_rounded, size: 20, color: AppColors.teal),
+            title: Text(ep.name, style: AppTextStyles.bodySmall),
+            subtitle: Text(
+              '${ep.baseUrl}${ep.modelName != null ? ' • ${ep.modelName}' : ''}',
+              style: AppTextStyles.labelSmall
+                  .copyWith(color: AppColors.textTertiary),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.play_arrow_rounded,
+                      size: 20, color: AppColors.teal),
+                  tooltip: 'Connect',
+                  onPressed: _isConnecting
+                      ? null
+                      : () => _connectRemote(
+                            baseUrl: ep.baseUrl,
+                            modelName: ep.modelName,
+                            apiKey: ep.apiKey,
+                            displayName: ep.name,
+                          ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      size: 18, color: AppColors.textTertiary),
+                  tooltip: 'Remove',
+                  onPressed: () =>
+                      ref.read(savedEndpointsProvider.notifier).removeEndpoint(idx),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    ];
   }
 
   Future<void> _connectRemote({

@@ -166,14 +166,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ..content = _streamBuffer
                         ..timestamp = DateTime.now();
 
+                      final settings = ref.watch(settingsProvider);
                       return MessageBubble(
                         message: streamMsg,
                         isStreaming: true,
+                        fontSize: settings.fontSize,
+                        compact: settings.compactMessages,
                       );
                     }
 
+                    final settings = ref.watch(settingsProvider);
                     return MessageBubble(
                       message: messages[index],
+                      fontSize: settings.fontSize,
+                      compact: settings.compactMessages,
                       onCopy: () => _showSnackBar('Copied to clipboard'),
                       onEdit: messages[index].role == MessageRole.user
                           ? () => _editMessage(messages[index])
@@ -782,6 +788,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       buf.writeln();
     }
 
+    // SkwirlSkills awareness — let the LLM know what tools it has
+    final acornSkills = (activeAcorn?.enabledSkills as String?) ?? '';
+    final acornSkillSet = acornSkills.split(',')
+        .where((s) => s.trim().isNotEmpty).toSet();
+    final globalPerms = ref.read(skillPermissionsProvider);
+    final activeSkills = acornSkillSet.where((name) {
+      final perm = globalPerms[name];
+      return perm != null && perm.isAllowed;
+    }).toSet();
+
+    if (activeSkills.isNotEmpty) {
+      buf.writeln();
+      buf.writeln('You have the following tools available and should use them proactively when relevant:');
+      for (final skill in activeSkills) {
+        buf.writeln('- $skill');
+      }
+      buf.writeln('When a user asks you to do something that matches one of your tools, USE the tool rather than saying you cannot do it.');
+      buf.writeln('For example, if asked to list files in a directory and you have list_files, call that tool.');
+      buf.writeln();
+    }
+
     // Behavioral guidelines
     buf.writeln('Guidelines:');
     buf.writeln('- Format responses using Markdown when helpful');
@@ -991,12 +1018,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
-                ref.read(conversationRepositoryProvider)
+                await ref.read(conversationRepositoryProvider)
                     .updateTitle(uuid, controller.text.trim());
                 final activeConv = ref.read(activeConversationProvider);
                 if (activeConv != null) {
+                  // Refresh the conversation object so title updates everywhere
+                  final updated = await ref
+                      .read(conversationRepositoryProvider)
+                      .getConversation(uuid);
+                  if (updated != null) {
+                    ref.read(activeConversationProvider.notifier).state =
+                        updated;
+                  }
                   ref.invalidate(
                       conversationsForAcornProvider(activeConv.acornId));
                 }

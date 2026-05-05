@@ -275,6 +275,7 @@ class SettingsScreen extends ConsumerWidget {
           _SliderTile(
             title: 'Temperature',
             subtitle: '${settings.temperature.toStringAsFixed(2)}',
+            tooltip: 'Controls randomness. Lower = more focused and deterministic. Higher = more creative and varied.',
             value: settings.temperature,
             min: 0.0,
             max: 2.0,
@@ -283,6 +284,7 @@ class SettingsScreen extends ConsumerWidget {
           _SliderTile(
             title: 'Top P',
             subtitle: '${settings.topP.toStringAsFixed(2)}',
+            tooltip: 'Nucleus sampling. Only considers tokens within this cumulative probability. Lower = more predictable.',
             value: settings.topP,
             min: 0.0,
             max: 1.0,
@@ -291,6 +293,7 @@ class SettingsScreen extends ConsumerWidget {
           _SliderTile(
             title: 'Top K',
             subtitle: '${settings.topK}',
+            tooltip: 'Limits the model to choosing from the top K most likely words. Lower = less random, 0 = disabled.',
             value: settings.topK.toDouble(),
             min: 0,
             max: 100,
@@ -300,6 +303,7 @@ class SettingsScreen extends ConsumerWidget {
           _SliderTile(
             title: 'Max Tokens',
             subtitle: '${settings.maxTokens}',
+            tooltip: 'Maximum length of the response in tokens (~4 chars each). Higher = longer responses allowed.',
             value: settings.maxTokens.toDouble(),
             min: 100,
             max: 8192,
@@ -310,6 +314,7 @@ class SettingsScreen extends ConsumerWidget {
             title: 'Context Size',
             subtitle: '${settings.contextSize} tokens'
                 '  (requires model reload)',
+            tooltip: 'How much conversation history the model can see. More = better memory but uses more RAM.',
             value: settings.contextSize.toDouble(),
             min: 2048,
             max: 32768,
@@ -427,6 +432,7 @@ String _formatTime(DateTime dt) {
 class _SliderTile extends StatelessWidget {
   final String title;
   final String subtitle;
+  final String? tooltip;
   final double value;
   final double min;
   final double max;
@@ -436,6 +442,7 @@ class _SliderTile extends StatelessWidget {
   const _SliderTile({
     required this.title,
     required this.subtitle,
+    this.tooltip,
     required this.value,
     required this.min,
     required this.max,
@@ -449,7 +456,21 @@ class _SliderTile extends StatelessWidget {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title),
+              if (tooltip != null) ...[
+                const SizedBox(width: 6),
+                Tooltip(
+                  message: tooltip!,
+                  preferBelow: false,
+                  child: Icon(Icons.help_outline_rounded,
+                      size: 16, color: AppColors.textTertiary),
+                ),
+              ],
+            ],
+          ),
           Text(subtitle, style: AppTextStyles.label),
         ],
       ),
