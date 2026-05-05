@@ -498,13 +498,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     try {
       // Check if active acorn has any enabled + permitted skills
       final acornSkills = activeAcorn?.enabledSkills ?? '';
+      debugPrint('[SkwirlSkills] activeAcorn: ${activeAcorn?.name}, enabledSkills: "$acornSkills"');
       final acornSkillSet = acornSkills.split(',')
           .where((s) => s.trim().isNotEmpty).toSet();
       final globalPerms = ref.read(skillPermissionsProvider);
+      debugPrint('[SkwirlSkills] acornSkillSet: $acornSkillSet');
+      debugPrint('[SkwirlSkills] globalPerms: ${globalPerms.map((k, v) => MapEntry(k, v.isAllowed))}');
       final hasSkills = acornSkillSet.any((name) {
         final perm = globalPerms[name];
         return perm != null && perm.isAllowed;
       });
+      debugPrint('[SkwirlSkills] hasSkills=$hasSkills → ${hasSkills ? "AGENT MODE" : "NORMAL MODE"}');
 
       if (hasSkills) {
         // Acorn has SkwirlSkills: use AgentModeService for tool calling loop

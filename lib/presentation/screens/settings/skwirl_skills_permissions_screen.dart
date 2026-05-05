@@ -33,19 +33,6 @@ class SkwirlSkillsPermissionsScreen extends ConsumerWidget {
     'generate_image': Icons.image_outlined,
   };
 
-  /// Which permission types apply to each tool
-  static const _toolPermissionTypes = {
-    'search_svl_docs': ['read'],
-    'read_file': ['read'],
-    'list_files': ['read'],
-    'write_file': ['write'],
-    'web_search': ['network'],
-    'list_google_calendar_events': ['read', 'network'],
-    'search_gmail': ['read', 'network'],
-    'get_recent_emails': ['read', 'network'],
-    'generate_image': ['read'],
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final permissions = ref.watch(skillPermissionsProvider);
@@ -88,9 +75,9 @@ class SkwirlSkillsPermissionsScreen extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Global permissions control what SkwirlSkills are allowed '
-                    'system-wide. Individual Acorns can only use skills that '
-                    'are permitted here.',
+                    'These are global permissions. If a skill is off here, '
+                    'no Acorn can use it. Toggle a skill on to allow '
+                    'individual Acorns to enable it.',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.teal,
                       height: 1.4,
@@ -151,116 +138,21 @@ class SkwirlSkillsPermissionsScreen extends ConsumerWidget {
     final perm = permissions[tool.name] ?? const SkillPermission();
     final displayName = _toolDisplayNames[tool.name] ?? tool.name;
     final icon = _toolIcons[tool.name] ?? Icons.extension_rounded;
-    final permTypes = _toolPermissionTypes[tool.name] ?? ['read'];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.divider),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row
-            Row(
-              children: [
-                Icon(icon, size: 20, color: AppColors.teal),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(displayName,
-                          style: AppTextStyles.bodySmall
-                              .copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text(tool.description,
-                          style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textTertiary, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Permission toggles
-            Row(
-              children: [
-                if (permTypes.contains('read'))
-                  _buildPermChip(
-                    label: 'Read',
-                    icon: Icons.visibility_outlined,
-                    enabled: perm.read,
-                    onTap: () => notifier.toggleRead(tool.name),
-                  ),
-                if (permTypes.contains('write')) ...[
-                  const SizedBox(width: 8),
-                  _buildPermChip(
-                    label: 'Write',
-                    icon: Icons.edit_outlined,
-                    enabled: perm.write,
-                    color: AppColors.amber,
-                    onTap: () => notifier.toggleWrite(tool.name),
-                  ),
-                ],
-                if (permTypes.contains('network')) ...[
-                  const SizedBox(width: 8),
-                  _buildPermChip(
-                    label: 'Network',
-                    icon: Icons.wifi_rounded,
-                    enabled: perm.network,
-                    color: AppColors.error,
-                    onTap: () => notifier.toggleNetwork(tool.name),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPermChip({
-    required String label,
-    required IconData icon,
-    required bool enabled,
-    required VoidCallback onTap,
-    Color color = AppColors.teal,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: enabled ? color.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: enabled ? color.withOpacity(0.5) : AppColors.divider,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 14,
-                color: enabled ? color : AppColors.textTertiary),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: enabled ? color : AppColors.textTertiary,
-                fontWeight: enabled ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return SwitchListTile(
+      secondary: Icon(icon,
+          size: 22,
+          color: perm.isAllowed ? AppColors.teal : AppColors.textTertiary),
+      title: Text(displayName,
+          style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w500,
+              color: perm.isAllowed ? null : AppColors.textTertiary)),
+      subtitle: Text(tool.description,
+          style: AppTextStyles.bodySmall
+              .copyWith(color: AppColors.textTertiary, fontSize: 11)),
+      value: perm.isAllowed,
+      activeColor: AppColors.teal,
+      onChanged: (_) => notifier.toggleAllowed(tool.name),
     );
   }
 }

@@ -210,6 +210,8 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
       acorn.ragEnabled = _ragEnabled;
       acorn.enabledSkills = _enabledSkills.join(',');
       await acornRepo.updateAcorn(acorn);
+      // Refresh activeAcornProvider so chat picks up the changes
+      ref.read(activeAcornProvider.notifier).state = acorn;
     } else {
       await acornRepo.createAcorn(
         name: _nameController.text.trim(),
@@ -350,7 +352,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
                         color: AppColors.error.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('blocked',
+                      child: Text('off in settings',
                           style: AppTextStyles.labelSmall.copyWith(
                               color: AppColors.error, fontSize: 10)),
                     ),
@@ -363,7 +365,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
                         color: AppColors.amber.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('confirm',
+                      child: Text('asks first',
                           style: AppTextStyles.labelSmall.copyWith(
                               color: AppColors.amber, fontSize: 10)),
                     ),
@@ -372,7 +374,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
               ),
               subtitle: Text(
                   isGloballyBlocked
-                      ? 'Blocked in Settings > SkwirlSkills Permissions'
+                      ? 'Enable in Settings > SkwirlSkills Permissions'
                       : tool.description,
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.textTertiary, fontSize: 11)),

@@ -165,53 +165,40 @@ final settingsProvider =
   return SettingsNotifier(prefs);
 });
 
-/// Permission flags for a single SkwirlSkill
+/// Permission for a single SkwirlSkill (simple on/off)
 class SkillPermission {
-  final bool read;
-  final bool write;
-  final bool network;
+  final bool allowed;
 
-  const SkillPermission({
-    this.read = true,
-    this.write = false,
-    this.network = false,
-  });
+  const SkillPermission({this.allowed = true});
 
-  SkillPermission copyWith({bool? read, bool? write, bool? network}) =>
-      SkillPermission(
-        read: read ?? this.read,
-        write: write ?? this.write,
-        network: network ?? this.network,
-      );
+  SkillPermission copyWith({bool? allowed}) =>
+      SkillPermission(allowed: allowed ?? this.allowed);
 
-  Map<String, dynamic> toJson() => {
-        'read': read,
-        'write': write,
-        'network': network,
-      };
+  Map<String, dynamic> toJson() => {'allowed': allowed};
 
   factory SkillPermission.fromJson(Map<String, dynamic> json) =>
       SkillPermission(
-        read: json['read'] as bool? ?? true,
-        write: json['write'] as bool? ?? false,
-        network: json['network'] as bool? ?? false,
+        // Support legacy read/write/network format
+        allowed: json['allowed'] as bool? ??
+            ((json['read'] as bool? ?? false) ||
+             (json['write'] as bool? ?? false) ||
+             (json['network'] as bool? ?? false)),
       );
 
-  /// Whether any permission is granted
-  bool get isAllowed => read || write || network;
+  bool get isAllowed => allowed;
 }
 
 /// Default permissions per skill (safe defaults — read-only local tools on)
 const _defaultSkillPermissions = <String, SkillPermission>{
-  'search_svl_docs': SkillPermission(read: true),
-  'read_file': SkillPermission(read: true),
-  'list_files': SkillPermission(read: true),
-  'write_file': SkillPermission(write: false),
-  'web_search': SkillPermission(network: false),
-  'list_google_calendar_events': SkillPermission(read: false, network: false),
-  'search_gmail': SkillPermission(read: false, network: false),
-  'get_recent_emails': SkillPermission(read: false, network: false),
-  'generate_image': SkillPermission(read: true),
+  'search_svl_docs': SkillPermission(allowed: true),
+  'read_file': SkillPermission(allowed: true),
+  'list_files': SkillPermission(allowed: true),
+  'write_file': SkillPermission(allowed: false),
+  'web_search': SkillPermission(allowed: false),
+  'list_google_calendar_events': SkillPermission(allowed: false),
+  'search_gmail': SkillPermission(allowed: false),
+  'get_recent_emails': SkillPermission(allowed: false),
+  'generate_image': SkillPermission(allowed: true),
 };
 
 class SkillPermissionsNotifier
@@ -259,20 +246,10 @@ class SkillPermissionsNotifier
     await _save();
   }
 
-  Future<void> toggleRead(String skillName) async {
-    final current = state[skillName] ?? const SkillPermission();
-    await setPermission(skillName, current.copyWith(read: !current.read));
-  }
-
-  Future<void> toggleWrite(String skillName) async {
-    final current = state[skillName] ?? const SkillPermission();
-    await setPermission(skillName, current.copyWith(write: !current.write));
-  }
-
-  Future<void> toggleNetwork(String skillName) async {
+  Future<void> toggleAllowed(String skillName) async {
     final current = state[skillName] ?? const SkillPermission();
     await setPermission(
-        skillName, current.copyWith(network: !current.network));
+        skillName, current.copyWith(allowed: !current.allowed));
   }
 
   /// Check if a skill is globally permitted (any permission flag is on)
