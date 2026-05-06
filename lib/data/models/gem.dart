@@ -101,7 +101,7 @@ class Acorn {
         ..color = '#58AFAE'
         ..createdAt = now
         ..updatedAt = now
-        ..enabledSkills = 'search_svl_docs,read_file,list_files'
+        ..enabledSkills = 'search_svl_docs,read_file,list_files,search_files,search_content'
         ..isDefault = true,
       Acorn()
         ..uuid = 'acorn-code-helper'
@@ -112,7 +112,7 @@ class Acorn {
         ..color = '#E3AB59'
         ..createdAt = now
         ..updatedAt = now
-        ..enabledSkills = 'search_svl_docs,read_file,list_files'
+        ..enabledSkills = 'search_svl_docs,read_file,list_files,search_files,search_content'
         ..isDefault = true,
       Acorn()
         ..uuid = 'acorn-social-media'
@@ -135,7 +135,7 @@ class Acorn {
         ..color = '#58AFAE'
         ..createdAt = now
         ..updatedAt = now
-        ..enabledSkills = 'search_svl_docs,read_file,list_files,web_search'
+        ..enabledSkills = 'search_svl_docs,read_file,list_files,search_files,search_content,web_search'
         ..agentModeDefault = true
         ..isDefault = true,
     ];

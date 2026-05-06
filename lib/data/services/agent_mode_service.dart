@@ -40,11 +40,9 @@ class AgentModeService {
     _currentIteration = 0;
 
     final conversationMessages = List<ChatMessage>.from(messages);
-    // Track failed tool calls to prevent infinite retries
-    final failedCallsByKey = <String, int>{}; // "toolName:argsHash" → count
-    final failedCallsByName = <String, int>{}; // "toolName" → count
+    // Track consecutive failures to detect stuck loops
+    int consecutiveFailures = 0;
     String lastFullResponse = '';
-    bool hasNudged = false; // only nudge once to avoid loops
 
     try {
       while (_isRunning && _currentIteration < AppConstants.maxAgentIterations) {
@@ -56,23 +54,37 @@ class AgentModeService {
         // Generate response — buffer silently, do NOT stream tokens yet
         final responseBuffer = StringBuffer();
         String? thinkingContent;
+        bool timedOut = false;
 
         final toolSchemas = allowedToolNames != null
             ? _toolRegistry.getFilteredToolSchemas(allowedToolNames)
             : _toolRegistry.toolSchemas;
 
-        await for (final token in _inferenceService.generateStream(
-          messages: conversationMessages,
-          agentMode: true,
-          systemPrompt: systemPrompt,
-          tools: toolSchemas,
-        )) {
-          responseBuffer.write(token);
+        // Add a timeout to prevent generation from hanging indefinitely
+        try {
+          await for (final token in _inferenceService.generateStream(
+            messages: conversationMessages,
+            agentMode: true,
+            systemPrompt: systemPrompt,
+            tools: toolSchemas,
+          ).timeout(AppConstants.agentGenerationTimeout)) {
+            if (!_isRunning) break;
+            responseBuffer.write(token);
+          }
+        } on TimeoutException {
+          Log.w(_tag, 'Generation timed out on iteration $_currentIteration');
+          timedOut = true;
         }
 
         final fullResponse = responseBuffer.toString();
         lastFullResponse = fullResponse;
-        Log.i(_tag, 'Response length: ${fullResponse.length} chars');
+        Log.i(_tag, 'Response length: ${fullResponse.length} chars (timeout: $timedOut)');
+
+        // If timed out with no content, break out
+        if (timedOut && fullResponse.trim().isEmpty) {
+          yield AgentEvent.finalAnswer('');
+          break;
+        }
 
         // Extract thinking content if present
         final thinkRegex = RegExp(r'<think>(.*?)</think>', dotAll: true);
@@ -86,68 +98,19 @@ class AgentModeService {
         final toolCalls = _toolRegistry.parseToolCalls(fullResponse);
 
         if (toolCalls.isEmpty) {
-          // Strip thinking blocks to get the actual content
-          final contentOnly = fullResponse
-              .replaceAll(RegExp(r'<think>[\s\S]*?</think>\s*'), '')
-              .trim();
-
-          // If tools were used previously and this "answer" is suspiciously
-          // short (model likely stopped before emitting another tool call),
-          // nudge ONCE to continue. Only nudge once to avoid infinite loops.
-          final toolsWereUsed = conversationMessages.any((m) => m.role == 'tool');
-          if (!hasNudged &&
-              toolsWereUsed &&
-              contentOnly.length < 120 &&
-              _currentIteration < AppConstants.maxAgentIterations) {
-            hasNudged = true;
-            Log.i(_tag, 'Short response after tool use — nudging (once)');
-            conversationMessages.add(ChatMessage(
-              role: 'assistant',
-              content: fullResponse,
-            ));
-            conversationMessages.add(ChatMessage(
-              role: 'tool',
-              content: 'SYSTEM: Your response was incomplete. '
-                  'Use the tool results you have to give a complete answer to the user, '
-                  'or call another tool if you need more information. '
-                  'Do NOT just describe what you plan to do — actually do it.',
-            ));
-            continue;
-          }
-
-          // No tool calls = final answer
+          // No tool calls = the model decided to give a final answer
           yield AgentEvent.finalAnswer(fullResponse);
           break;
         }
 
-        // Check for repeated failing calls — by exact args AND by tool name
-        bool shouldBreak = false;
-        for (final call in toolCalls) {
-          final exactKey = '${call.toolName}:${call.arguments.toString()}';
-          if ((failedCallsByKey[exactKey] ?? 0) >= 2) {
-            shouldBreak = true;
-            break;
-          }
-          if ((failedCallsByName[call.toolName] ?? 0) >= 3) {
-            shouldBreak = true;
-            break;
-          }
-        }
-        if (shouldBreak) {
-          Log.w(_tag, 'Tool call loop detected — breaking');
-          // Don't attempt another generation (can hang).
-          // Emit what we have — the UI will show the fallback message.
-          yield AgentEvent.finalAnswer(lastFullResponse);
-          break;
-        }
-
-        // Add the assistant message once (contains tool call(s))
+        // Add the assistant message (contains tool call(s))
         conversationMessages.add(ChatMessage(
           role: 'assistant',
           content: fullResponse,
         ));
 
         // Execute tool calls
+        bool allFailed = true;
         for (final call in toolCalls) {
           // Check if confirmation is needed
           if (_toolRegistry.requiresConfirmation(call.toolName)) {
@@ -179,13 +142,7 @@ class AgentModeService {
           final result = await _toolRegistry.executeTool(call);
           yield AgentEvent.toolResult(result);
 
-          // Track failures by exact key and by tool name
-          if (!result.success) {
-            final exactKey = '${call.toolName}:${call.arguments.toString()}';
-            failedCallsByKey[exactKey] = (failedCallsByKey[exactKey] ?? 0) + 1;
-          }
-          failedCallsByName[call.toolName] =
-              (failedCallsByName[call.toolName] ?? 0) + 1;
+          if (result.success) allFailed = false;
 
           // Add tool result to conversation for next iteration
           final statusLabel = result.success ? 'SUCCESS' : 'FAILED';
@@ -194,12 +151,23 @@ class AgentModeService {
             content: '[$statusLabel] ${call.toolName} result: ${result.output}',
           ));
         }
+
+        // Track consecutive all-fail iterations
+        if (allFailed) {
+          consecutiveFailures++;
+          Log.w(_tag, 'All tool calls failed ($consecutiveFailures consecutive)');
+          if (consecutiveFailures >= 3) {
+            Log.w(_tag, 'Too many consecutive failures — breaking');
+            yield AgentEvent.finalAnswer(lastFullResponse);
+            break;
+          }
+        } else {
+          consecutiveFailures = 0; // reset on any success
+        }
       }
 
       if (_currentIteration >= AppConstants.maxAgentIterations) {
         Log.w(_tag, 'Agent reached max iterations');
-        // Don't attempt another generation (can hang on large context).
-        // Use the last response as the final answer — the UI will clean it.
         yield AgentEvent.finalAnswer(lastFullResponse);
         yield AgentEvent.maxIterationsReached();
       }

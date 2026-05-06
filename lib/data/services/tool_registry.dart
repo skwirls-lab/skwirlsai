@@ -394,6 +394,164 @@ class ToolRegistry {
       },
     );
 
+    // search_files - Recursively search for files by name pattern
+    _register(
+      Tool(
+        name: 'search_files',
+        description: 'Recursively search for files and directories matching a name pattern '
+            'within a directory tree. Uses case-insensitive substring matching. '
+            'Returns matching file paths with their types and sizes. '
+            'Use this instead of manually listing directories one by one.',
+        category: ToolCategory.local,
+        parameters: {
+          'path': const ToolParameter(
+            type: 'string',
+            description: 'Absolute directory path to search within',
+            required: true,
+          ),
+          'pattern': const ToolParameter(
+            type: 'string',
+            description: 'Search pattern (case-insensitive substring match on file/folder names). '
+                'E.g., "report" matches "Monthly_Report.docx", ".txt" matches all text files.',
+            required: true,
+          ),
+        },
+      ),
+      (args) async {
+        final path = args['path'] as String;
+        final pattern = (args['pattern'] as String).toLowerCase();
+        try {
+          final dir = Directory(path);
+          if (!await dir.exists()) {
+            return ToolResult(
+              toolName: 'search_files',
+              success: false,
+              output: 'Directory not found: $path',
+              executionTime: Duration.zero,
+            );
+          }
+          final matches = <String>[];
+          await for (final entity in dir.list(recursive: true, followLinks: false)) {
+            final name = entity.path.split(Platform.pathSeparator).last.toLowerCase();
+            if (name.contains(pattern)) {
+              final stat = entity.statSync();
+              final isDir = stat.type == FileSystemEntityType.directory;
+              final size = isDir ? '' : ' (${(stat.size / 1024).toStringAsFixed(1)} KB)';
+              matches.add('[${isDir ? "DIR" : "FILE"}] ${entity.path}$size');
+            }
+            if (matches.length >= 50) break; // cap results
+          }
+          final output = matches.isEmpty
+              ? 'No matches found for "$pattern" in $path'
+              : 'Found ${matches.length} match${matches.length == 1 ? '' : 'es'} in $path:\n${matches.join('\n')}';
+          return ToolResult(
+            toolName: 'search_files',
+            success: true,
+            output: output,
+            executionTime: Duration.zero,
+          );
+        } catch (e) {
+          return ToolResult(
+            toolName: 'search_files',
+            success: false,
+            output: 'Error searching: $e',
+            executionTime: Duration.zero,
+          );
+        }
+      },
+    );
+
+    // search_content - Search for text content within files
+    _register(
+      Tool(
+        name: 'search_content',
+        description: 'Search for files containing specific text within a directory tree. '
+            'Searches file contents recursively (case-insensitive). '
+            'Returns matching file paths and a preview of the matching line. '
+            'Useful when you need to find a file by its contents rather than its name.',
+        category: ToolCategory.local,
+        parameters: {
+          'path': const ToolParameter(
+            type: 'string',
+            description: 'Absolute directory path to search within',
+            required: true,
+          ),
+          'query': const ToolParameter(
+            type: 'string',
+            description: 'Text to search for within file contents (case-insensitive)',
+            required: true,
+          ),
+        },
+      ),
+      (args) async {
+        final path = args['path'] as String;
+        final query = (args['query'] as String).toLowerCase();
+        try {
+          final dir = Directory(path);
+          if (!await dir.exists()) {
+            return ToolResult(
+              toolName: 'search_content',
+              success: false,
+              output: 'Directory not found: $path',
+              executionTime: Duration.zero,
+            );
+          }
+          final matches = <String>[];
+          await for (final entity in dir.list(recursive: true, followLinks: false)) {
+            if (entity is! File) continue;
+            final ext = entity.path.split('.').last.toLowerCase();
+            // Only search text-like files
+            const textExts = {'txt', 'md', 'csv', 'json', 'xml', 'yaml', 'yml',
+                'html', 'htm', 'css', 'js', 'ts', 'dart', 'py', 'java', 'c',
+                'cpp', 'h', 'log', 'ini', 'cfg', 'toml', 'env', 'sh', 'bat',
+                'ps1', 'sql', 'rtf', 'tex', 'org', 'rst'};
+            if (!textExts.contains(ext)) continue;
+            // Skip large files (>1MB)
+            final stat = entity.statSync();
+            if (stat.size > 1024 * 1024) continue;
+            try {
+              final content = await entity.readAsString();
+              final lowerContent = content.toLowerCase();
+              if (lowerContent.contains(query)) {
+                // Find the matching line for preview
+                final lines = content.split('\n');
+                String preview = '';
+                for (final line in lines) {
+                  if (line.toLowerCase().contains(query)) {
+                    preview = line.trim();
+                    if (preview.length > 100) {
+                      preview = '${preview.substring(0, 100)}...';
+                    }
+                    break;
+                  }
+                }
+                matches.add('[FILE] ${entity.path} (${(stat.size / 1024).toStringAsFixed(1)} KB)\n  → $preview');
+              }
+            } catch (_) {
+              // Skip files that can't be read as text
+            }
+            if (matches.length >= 20) break; // cap results
+          }
+          final output = matches.isEmpty
+              ? 'No files containing "$query" found in $path'
+              : 'Found ${matches.length} file${matches.length == 1 ? '' : 's'} containing "$query" in $path:\n${matches.join('\n')}';
+          return ToolResult(
+            toolName: 'search_content',
+            success: true,
+            output: output,
+            executionTime: Duration.zero,
+          );
+        } catch (e) {
+          return ToolResult(
+            toolName: 'search_content',
+            success: false,
+            output: 'Error searching content: $e',
+            executionTime: Duration.zero,
+          );
+        }
+      },
+    );
+
     // list_google_calendar_events - Calendar (requires confirmation)
     _register(
       Tool(

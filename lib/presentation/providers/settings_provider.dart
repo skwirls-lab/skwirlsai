@@ -193,6 +193,8 @@ const _defaultSkillPermissions = <String, SkillPermission>{
   'search_svl_docs': SkillPermission(allowed: true),
   'read_file': SkillPermission(allowed: true),
   'list_files': SkillPermission(allowed: true),
+  'search_files': SkillPermission(allowed: true),
+  'search_content': SkillPermission(allowed: true),
   'write_file': SkillPermission(allowed: false),
   'web_search': SkillPermission(allowed: false),
   'list_google_calendar_events': SkillPermission(allowed: false),

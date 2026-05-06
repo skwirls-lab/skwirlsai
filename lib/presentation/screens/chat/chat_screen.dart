@@ -713,6 +713,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         case AgentEventType.finalAnswer:
           finalText = event.text ?? '';
+          // Show tool activity summary + final answer in stream buffer
+          setState(() {
+            final activitySection = toolActivity.isNotEmpty
+                ? '${toolActivity.join('\n')}\n\n---\n\n'
+                : '';
+            _streamBuffer = activitySection + _cleanFinalForDisplay(finalText);
+          });
+          _scrollToBottom();
           break;
 
         case AgentEventType.maxIterationsReached:
@@ -861,6 +869,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       buf.writeln('💭 *Thinking...*');
     }
     return buf.toString();
+  }
+
+  /// Strip artifacts from text for live display (not saved)
+  String _cleanFinalForDisplay(String text) {
+    var cleaned = text;
+    for (final tok in _specialTokens) {
+      cleaned = cleaned.replaceAll(tok, '');
+    }
+    cleaned = cleaned.replaceAll(RegExp(r'<think>[\s\S]*?</think>\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'```tool_call[\s\S]*?```\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'<tool_call>[\s\S]*?</tool_call>\s*'), '');
+    cleaned = cleaned.replaceAll(
+        RegExp(r'\{"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\}'), '');
+    return cleaned.trim();
   }
 
   /// Strip artifacts from text for saving
