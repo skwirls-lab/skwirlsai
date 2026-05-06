@@ -125,24 +125,51 @@ class ToolRegistry {
     return tool.requiresConfirmation;
   }
 
-  /// Parse tool calls from LLM response text
+  /// Parse tool calls from LLM response text.
+  /// Supports:
+  ///  - Gemma 4 style: ```tool_call\n{...}\n``` or <tool_call>{...}</tool_call>
+  ///  - Generic JSON: {"name": "...", "arguments": {...}}
   List<ToolCall> parseToolCalls(String responseText) {
     final calls = <ToolCall>[];
 
-    // Look for JSON function calls in the response
-    final jsonPattern = RegExp(r'\{[^{}]*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^{}]*\}[^{}]*\}');
-    final matches = jsonPattern.allMatches(responseText);
+    // 1. Gemma 4 style: ```tool_call\n{json}\n``` blocks
+    final codeBlockPattern = RegExp(
+        r'```tool_call\s*\n(\{[\s\S]*?\})\s*\n?```',
+        multiLine: true);
+    for (final match in codeBlockPattern.allMatches(responseText)) {
+      _tryParseToolCall(match.group(1)!, calls);
+    }
 
-    for (final match in matches) {
-      try {
-        final json = jsonDecode(match.group(0)!) as Map<String, dynamic>;
-        calls.add(ToolCall.fromJson(json));
-      } catch (e) {
-        Log.w(_tag, 'Failed to parse tool call: ${match.group(0)}');
+    // 2. XML-style: <tool_call>{json}</tool_call>
+    final xmlPattern = RegExp(
+        r'<tool_call>\s*(\{[\s\S]*?\})\s*</tool_call>',
+        multiLine: true);
+    for (final match in xmlPattern.allMatches(responseText)) {
+      _tryParseToolCall(match.group(1)!, calls);
+    }
+
+    // 3. Bare JSON with "name" and "arguments" keys (fallback)
+    if (calls.isEmpty) {
+      // Match JSON objects that contain "name" — handles nested args
+      final barePattern = RegExp(
+          r'\{\s*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[\s\S]*?\}\s*\}');
+      for (final match in barePattern.allMatches(responseText)) {
+        _tryParseToolCall(match.group(0)!, calls);
       }
     }
 
     return calls;
+  }
+
+  void _tryParseToolCall(String jsonStr, List<ToolCall> calls) {
+    try {
+      final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+      if (json.containsKey('name')) {
+        calls.add(ToolCall.fromJson(json));
+      }
+    } catch (e) {
+      Log.w(_tag, 'Failed to parse tool call: $jsonStr');
+    }
   }
 
   void _registerBuiltInTools() {

@@ -93,13 +93,37 @@ class InferenceService {
     if (agentMode && tools != null && tools.isNotEmpty) {
       final toolBlock = StringBuffer();
       if (systemPrompt != null) toolBlock.writeln(systemPrompt);
-      toolBlock.writeln('\nYou have access to the following tools:');
+      toolBlock.writeln();
+      toolBlock.writeln('# Available Tools');
+      toolBlock.writeln('You have access to the following tools. Use them when they can help answer the user\'s question.');
+      toolBlock.writeln();
       for (final tool in tools) {
-        toolBlock.writeln(
-            '- ${tool['function']['name']}: ${tool['function']['description']}');
+        final fn = tool['function'] as Map<String, dynamic>;
+        toolBlock.writeln('## ${fn['name']}');
+        toolBlock.writeln('Description: ${fn['description']}');
+        final params = fn['parameters'] as Map<String, dynamic>?;
+        if (params != null && params['properties'] != null) {
+          final props = params['properties'] as Map<String, dynamic>;
+          final required = (params['required'] as List?)?.cast<String>() ?? [];
+          toolBlock.writeln('Parameters:');
+          for (final entry in props.entries) {
+            final p = entry.value as Map<String, dynamic>;
+            final req = required.contains(entry.key) ? ' (required)' : '';
+            toolBlock.writeln('  - ${entry.key}: ${p['type']}$req — ${p['description'] ?? ''}');
+          }
+        }
+        toolBlock.writeln();
       }
-      toolBlock.writeln(
-          '\nTo call a tool, respond with: {"name": "tool_name", "arguments": {...}}');
+      toolBlock.writeln('# How to call a tool');
+      toolBlock.writeln('When you want to use a tool, output ONLY valid JSON in a tool_call code block:');
+      toolBlock.writeln('```tool_call');
+      toolBlock.writeln('{"name": "tool_name", "arguments": {"param": "value"}}');
+      toolBlock.writeln('```');
+      toolBlock.writeln();
+      toolBlock.writeln('Important rules:');
+      toolBlock.writeln('- Output ONLY the tool call JSON, nothing else, when calling a tool.');
+      toolBlock.writeln('- After the tool returns its result, continue your response using that information.');
+      toolBlock.writeln('- If you don\'t need a tool, just respond normally without any tool_call block.');
       fullSystemPrompt = toolBlock.toString();
     }
 
