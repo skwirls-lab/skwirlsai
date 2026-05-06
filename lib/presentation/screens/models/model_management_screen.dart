@@ -494,12 +494,12 @@ class _ConnectionStatusBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: isConnected
             ? AppColors.success.withOpacity(0.1)
-            : AppColors.warning.withOpacity(0.1),
+            : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isConnected
               ? AppColors.success.withOpacity(0.3)
-              : AppColors.warning.withOpacity(0.3),
+              : AppColors.divider,
         ),
       ),
       child: Row(
@@ -507,8 +507,8 @@ class _ConnectionStatusBanner extends StatelessWidget {
           Icon(
             isConnected
                 ? Icons.check_circle_rounded
-                : Icons.warning_amber_rounded,
-            color: isConnected ? AppColors.success : AppColors.warning,
+                : Icons.info_outline_rounded,
+            color: isConnected ? AppColors.success : AppColors.textTertiary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -516,10 +516,10 @@ class _ConnectionStatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isConnected ? 'Connected' : 'No Model Connected',
+                  isConnected ? 'Model Active' : 'No Model Loaded',
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isConnected ? AppColors.success : AppColors.warning,
+                    color: isConnected ? AppColors.success : AppColors.textSecondary,
                   ),
                 ),
                 if (isConnected) ...[
