@@ -87,6 +87,11 @@ class _MessageBubbleState extends State<MessageBubble> {
                             widget.message.thinkingContent!.isNotEmpty)
                           _ThinkingSection(
                               content: widget.message.thinkingContent!),
+                        // Tool activity (collapsible)
+                        if (widget.message.toolCallsJson != null &&
+                            widget.message.toolCallsJson!.isNotEmpty)
+                          _ToolActivitySection(
+                              content: widget.message.toolCallsJson!),
                         // Attachment indicator
                         if (_isUser &&
                             widget.message.attachmentIds != null &&
@@ -429,6 +434,76 @@ class _ThinkingSectionState extends State<_ThinkingSection> {
                 color: AppColors.textTertiary,
                 fontStyle: FontStyle.italic,
                 height: 1.5,
+              ),
+            ),
+          ),
+        if (!_isExpanded) const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
+class _ToolActivitySection extends StatefulWidget {
+  final String content;
+
+  const _ToolActivitySection({required this.content});
+
+  @override
+  State<_ToolActivitySection> createState() => _ToolActivitySectionState();
+}
+
+class _ToolActivitySectionState extends State<_ToolActivitySection> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          borderRadius: BorderRadius.circular(4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _isExpanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
+                  size: 16,
+                  color: AppColors.teal,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _isExpanded ? 'Hide tool activity' : 'Show tool activity',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.teal,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.build_rounded, size: 12, color: AppColors.teal),
+              ],
+            ),
+          ),
+        ),
+        if (_isExpanded)
+          Container(
+            margin: const EdgeInsets.only(top: 6, bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.teal.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.teal.withOpacity(0.2)),
+            ),
+            child: SelectableText(
+              widget.content,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.5,
+                fontFamily: 'monospace',
+                fontSize: 11,
               ),
             ),
           ),
