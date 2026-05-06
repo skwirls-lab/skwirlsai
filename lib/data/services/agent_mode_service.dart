@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/tool.dart';
@@ -29,8 +30,16 @@ class AgentModeService {
   })  : _inferenceService = inferenceService,
         _toolRegistry = toolRegistry;
 
-  /// Run agent mode: generate, parse tool calls, execute, loop
-  /// If [allowedToolNames] is provided, only those tools are made available.
+  /// Console-visible logging (debugPrint goes to flutter run terminal)
+  void _log(String msg) => debugPrint('[Agent] $msg');
+
+  /// Run agent mode: generate, parse tool calls, execute, loop.
+  ///
+  /// Key design: the agent loop tracks ALL tool calls and their results
+  /// across iterations. If the model tries the exact same call again,
+  /// we inject the cached result instead of re-executing. If the model
+  /// is stuck in a loop (same call 2+ times), we inject a nudge telling
+  /// it to try a different approach.
   Stream<AgentEvent> run({
     required List<ChatMessage> messages,
     String? systemPrompt,
@@ -40,27 +49,29 @@ class AgentModeService {
     _currentIteration = 0;
 
     final conversationMessages = List<ChatMessage>.from(messages);
-    // Track consecutive failures to detect stuck loops
-    int consecutiveFailures = 0;
     String lastFullResponse = '';
+
+    // Cross-iteration tool call cache: key → result output
+    final toolCallCache = <String, String>{};
+    // Count how many times each tool call key was attempted
+    final toolCallCounts = <String, int>{};
+
+    final toolSchemas = allowedToolNames != null
+        ? _toolRegistry.getFilteredToolSchemas(allowedToolNames)
+        : _toolRegistry.toolSchemas;
 
     try {
       while (_isRunning && _currentIteration < AppConstants.maxAgentIterations) {
         _currentIteration++;
-        Log.i(_tag, 'Agent iteration $_currentIteration/${AppConstants.maxAgentIterations}');
+        _log('Iteration $_currentIteration/${AppConstants.maxAgentIterations} (${conversationMessages.length} msgs)');
 
         yield AgentEvent.thinking(iteration: _currentIteration);
 
-        // Generate response — buffer silently, do NOT stream tokens yet
+        // ── Generate response ──────────────────────────────────────
         final responseBuffer = StringBuffer();
         String? thinkingContent;
         bool timedOut = false;
 
-        final toolSchemas = allowedToolNames != null
-            ? _toolRegistry.getFilteredToolSchemas(allowedToolNames)
-            : _toolRegistry.toolSchemas;
-
-        // Add a timeout to prevent generation from hanging indefinitely
         try {
           await for (final token in _inferenceService.generateStream(
             messages: conversationMessages,
@@ -72,73 +83,115 @@ class AgentModeService {
             responseBuffer.write(token);
           }
         } on TimeoutException {
-          Log.w(_tag, 'Generation timed out on iteration $_currentIteration');
+          _log('Generation timed out');
           timedOut = true;
+        }
+
+        if (!_isRunning) {
+          _log('Stopped by user during generation');
+          break;
         }
 
         final fullResponse = responseBuffer.toString();
         lastFullResponse = fullResponse;
-        Log.i(_tag, 'Response length: ${fullResponse.length} chars (timeout: $timedOut)');
 
-        // If timed out with no content, break out
+        final preview = fullResponse.length > 300
+            ? '${fullResponse.substring(0, 300)}...'
+            : fullResponse;
+        _log('Response (${fullResponse.length} chars): $preview');
+
         if (timedOut && fullResponse.trim().isEmpty) {
           yield AgentEvent.finalAnswer('');
           break;
         }
 
-        // Extract thinking content if present
-        final thinkRegex = RegExp(r'<think>(.*?)</think>', dotAll: true);
-        final thinkMatch = thinkRegex.firstMatch(fullResponse);
+        // ── Extract thinking ──────────────────────────────────────
+        final thinkMatch = RegExp(r'<think>(.*?)</think>', dotAll: true)
+            .firstMatch(fullResponse);
         if (thinkMatch != null) {
           thinkingContent = thinkMatch.group(1)?.trim();
           yield AgentEvent.thinkingContent(thinkingContent ?? '');
         }
 
-        // Parse tool calls from the response
+        // ── Parse tool calls ──────────────────────────────────────
         final toolCalls = _toolRegistry.parseToolCalls(fullResponse);
+        _log('Parsed ${toolCalls.length} tool call(s): ${toolCalls.map((c) => c.toolName).join(', ')}');
 
         if (toolCalls.isEmpty) {
-          // No tool calls = the model decided to give a final answer
+          _log('No tool calls → final answer');
           yield AgentEvent.finalAnswer(fullResponse);
           break;
         }
 
-        // Deduplicate tool calls (same name + same args)
+        // ── Deduplicate within this response ──────────────────────
         final seen = <String>{};
         final uniqueCalls = <ToolCall>[];
         for (final call in toolCalls) {
-          final key = '${call.toolName}:${call.arguments.toString()}';
+          final key = '${call.toolName}:${call.arguments}';
           if (seen.add(key)) uniqueCalls.add(call);
         }
 
-        // Strip narrative from the assistant message — only keep tool call
-        // blocks. This prevents the model from seeing its own "plan" text
-        // and repeating it instead of acting on tool results.
-        var cleanedAssistant = fullResponse;
-        // Keep think blocks but strip everything else around tool calls
-        cleanedAssistant = cleanedAssistant.replaceAll(
-            RegExp(r'(?<=```\s*)[\s\S]*?(?=```tool_call)', multiLine: true), '');
-        // Simple approach: just keep the tool call blocks
-        final toolCallBlocks = RegExp(r'```tool_call[\s\S]*?```|<tool_call>[\s\S]*?</tool_call>')
+        // ── Strip narrative, keep only tool_call blocks ───────────
+        final toolCallBlocks = RegExp(
+            r'```tool_call[\s\S]*?```|<tool_call>[\s\S]*?</tool_call>')
             .allMatches(fullResponse)
             .map((m) => m.group(0))
             .join('\n');
-        if (toolCallBlocks.isNotEmpty) {
-          cleanedAssistant = toolCallBlocks;
-        }
+        final cleanedAssistant =
+            toolCallBlocks.isNotEmpty ? toolCallBlocks : fullResponse;
 
         conversationMessages.add(ChatMessage(
           role: 'assistant',
           content: cleanedAssistant,
         ));
 
-        // Execute tool calls (deduplicated)
-        bool allFailed = true;
+        // ── Execute tool calls ────────────────────────────────────
+        bool anyExecuted = false;
+        bool allRepeats = true;
+
         for (final call in uniqueCalls) {
+          if (!_isRunning) {
+            _log('Stopped by user before tool: ${call.toolName}');
+            break;
+          }
+
+          final callKey = '${call.toolName}:${call.arguments}';
+          toolCallCounts[callKey] = (toolCallCounts[callKey] ?? 0) + 1;
+          final repeatCount = toolCallCounts[callKey]!;
+
+          // ── Cross-iteration dedup: if we already ran this exact
+          //    call, inject the cached result instead of re-running
+          if (repeatCount > 1 && toolCallCache.containsKey(callKey)) {
+            final cachedOutput = toolCallCache[callKey]!;
+            _log('REPEAT #$repeatCount: ${call.toolName} — using cached result');
+
+            yield AgentEvent.toolExecuting(call);
+            final cachedResult = ToolResult(
+              toolName: call.toolName,
+              callId: call.id,
+              success: true,
+              output: cachedOutput,
+              executionTime: Duration.zero,
+            );
+            yield AgentEvent.toolResult(cachedResult);
+
+            // Add a nudge telling the model to try something different
+            conversationMessages.add(ChatMessage(
+              role: 'tool',
+              content: '[CACHED — ALREADY CALLED] ${call.toolName} result: $cachedOutput\n\n'
+                  'You already called ${call.toolName} with these exact arguments. '
+                  'Do NOT call it again. Use the result above and proceed: '
+                  'call a DIFFERENT tool (e.g., search_content, read_file, list_files) '
+                  'or give your final answer.',
+            ));
+            continue;
+          }
+
+          allRepeats = false;
+
           // Check if confirmation is needed
           if (_toolRegistry.requiresConfirmation(call.toolName)) {
             yield AgentEvent.confirmationRequired(call);
-
             if (onConfirmationRequired != null) {
               final confirmed = await onConfirmationRequired!(call);
               if (!confirmed) {
@@ -149,7 +202,6 @@ class AgentModeService {
                   output: 'User declined to execute this tool.',
                   executionTime: Duration.zero,
                 ));
-
                 conversationMessages.add(ChatMessage(
                   role: 'tool',
                   content: 'Tool ${call.toolName} was declined by the user.',
@@ -161,40 +213,46 @@ class AgentModeService {
 
           // Execute the tool
           yield AgentEvent.toolExecuting(call);
-
           final result = await _toolRegistry.executeTool(call);
           yield AgentEvent.toolResult(result);
+          anyExecuted = true;
 
-          if (result.success) allFailed = false;
+          // Cache the result for cross-iteration dedup
+          toolCallCache[callKey] = result.output;
 
-          // Add tool result to conversation for next iteration
           final statusLabel = result.success ? 'SUCCESS' : 'FAILED';
           conversationMessages.add(ChatMessage(
             role: 'tool',
             content: '[$statusLabel] ${call.toolName} result: ${result.output}',
           ));
+
+          _log('Tool ${call.toolName}: $statusLabel (${result.output.length} chars)');
         }
 
-        // Track consecutive all-fail iterations
-        if (allFailed) {
-          consecutiveFailures++;
-          Log.w(_tag, 'All tool calls failed ($consecutiveFailures consecutive)');
-          if (consecutiveFailures >= 3) {
-            Log.w(_tag, 'Too many consecutive failures — breaking');
+        if (!_isRunning) break;
+
+        // ── Stuck loop detection ──────────────────────────────────
+        // If ALL calls in this iteration were repeats, the model is
+        // stuck. Give it 2 chances with the nudge, then break.
+        if (allRepeats) {
+          final maxRepeat = toolCallCounts.values.fold(0,
+              (a, b) => a > b ? a : b);
+          _log('All calls were repeats (max count: $maxRepeat)');
+          if (maxRepeat >= 3) {
+            _log('Model stuck in loop — breaking');
             yield AgentEvent.finalAnswer(lastFullResponse);
             break;
           }
-        } else {
-          consecutiveFailures = 0; // reset on any success
         }
       }
 
-      if (_currentIteration >= AppConstants.maxAgentIterations) {
-        Log.w(_tag, 'Agent reached max iterations');
+      if (_isRunning && _currentIteration >= AppConstants.maxAgentIterations) {
+        _log('Reached max iterations');
         yield AgentEvent.finalAnswer(lastFullResponse);
         yield AgentEvent.maxIterationsReached();
       }
     } catch (e, st) {
+      _log('Error: $e');
       Log.e(_tag, 'Agent mode error', e, st);
       yield AgentEvent.error(e.toString());
     } finally {
@@ -208,7 +266,7 @@ class AgentModeService {
     if (_isRunning) {
       _isRunning = false;
       _inferenceService.stopGeneration();
-      Log.i(_tag, 'Agent stopped by user');
+      _log('Stopped by user');
       _agentEventController.add(AgentEvent.stopped());
     }
   }

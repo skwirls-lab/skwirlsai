@@ -14,7 +14,7 @@ class AppConstants {
   static const double defaultRepeatPenalty = 1.1;
 
   // Agent mode limits
-  static const int maxAgentIterations = 15;
+  static const int maxAgentIterations = 8;
   static const Duration agentToolTimeout = Duration(seconds: 45);
   static const Duration agentGenerationTimeout = Duration(seconds: 120);
 
