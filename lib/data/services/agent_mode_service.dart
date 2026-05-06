@@ -44,6 +44,7 @@ class AgentModeService {
     final failedCallsByKey = <String, int>{}; // "toolName:argsHash" → count
     final failedCallsByName = <String, int>{}; // "toolName" → count
     String lastFullResponse = '';
+    bool hasNudged = false; // only nudge once to avoid loops
 
     try {
       while (_isRunning && _currentIteration < AppConstants.maxAgentIterations) {
@@ -67,12 +68,11 @@ class AgentModeService {
           tools: toolSchemas,
         )) {
           responseBuffer.write(token);
-          // Do NOT yield tokens here — we don't know yet if this is
-          // a tool call or a final answer
         }
 
         final fullResponse = responseBuffer.toString();
         lastFullResponse = fullResponse;
+        Log.i(_tag, 'Response length: ${fullResponse.length} chars');
 
         // Extract thinking content if present
         final thinkRegex = RegExp(r'<think>(.*?)</think>', dotAll: true);
@@ -93,24 +93,26 @@ class AgentModeService {
 
           // If tools were used previously and this "answer" is suspiciously
           // short (model likely stopped before emitting another tool call),
-          // nudge it to continue rather than treating this as a final answer.
+          // nudge ONCE to continue. Only nudge once to avoid infinite loops.
           final toolsWereUsed = conversationMessages.any((m) => m.role == 'tool');
-          if (toolsWereUsed &&
+          if (!hasNudged &&
+              toolsWereUsed &&
               contentOnly.length < 120 &&
               _currentIteration < AppConstants.maxAgentIterations) {
-            Log.i(_tag, 'Short response after tool use — nudging continuation');
+            hasNudged = true;
+            Log.i(_tag, 'Short response after tool use — nudging (once)');
             conversationMessages.add(ChatMessage(
               role: 'assistant',
               content: fullResponse,
             ));
             conversationMessages.add(ChatMessage(
               role: 'tool',
-              content: 'SYSTEM: You started to respond but did not finish. '
-                  'You have tool results available. Use them to give a complete '
-                  'answer, or call another tool if needed. Do NOT just describe '
-                  'what you plan to do.',
+              content: 'SYSTEM: Your response was incomplete. '
+                  'Use the tool results you have to give a complete answer to the user, '
+                  'or call another tool if you need more information. '
+                  'Do NOT just describe what you plan to do — actually do it.',
             ));
-            continue; // retry this iteration
+            continue;
           }
 
           // No tool calls = final answer
