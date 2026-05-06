@@ -41,7 +41,8 @@ class AgentModeService {
 
     final conversationMessages = List<ChatMessage>.from(messages);
     // Track failed tool calls to prevent infinite retries
-    final failedCalls = <String, int>{}; // "toolName:argsHash" → count
+    final failedCallsByKey = <String, int>{}; // "toolName:argsHash" → count
+    final failedCallsByName = <String, int>{}; // "toolName" → count
     String lastFullResponse = '';
 
     try {
@@ -51,7 +52,7 @@ class AgentModeService {
 
         yield AgentEvent.thinking(iteration: _currentIteration);
 
-        // Generate with tools available
+        // Generate response — buffer silently, do NOT stream tokens yet
         final responseBuffer = StringBuffer();
         String? thinkingContent;
 
@@ -66,7 +67,8 @@ class AgentModeService {
           tools: toolSchemas,
         )) {
           responseBuffer.write(token);
-          yield AgentEvent.token(token);
+          // Do NOT yield tokens here — we don't know yet if this is
+          // a tool call or a final answer
         }
 
         final fullResponse = responseBuffer.toString();
@@ -84,30 +86,35 @@ class AgentModeService {
         final toolCalls = _toolRegistry.parseToolCalls(fullResponse);
 
         if (toolCalls.isEmpty) {
-          // No tool calls = final answer, we're done
+          // No tool calls = final answer. Stream the clean answer to the UI.
           yield AgentEvent.finalAnswer(fullResponse);
           break;
         }
 
-        // Check for repeated failing calls — force final answer if stuck
-        bool allRepeated = true;
+        // Check for repeated failing calls — by exact args AND by tool name
+        bool shouldBreak = false;
         for (final call in toolCalls) {
-          final key = '${call.toolName}:${call.arguments.toString()}';
-          final prevFails = failedCalls[key] ?? 0;
-          if (prevFails < 2) {
-            allRepeated = false;
+          final exactKey = '${call.toolName}:${call.arguments.toString()}';
+          if ((failedCallsByKey[exactKey] ?? 0) >= 2) {
+            shouldBreak = true;
+            break;
+          }
+          if ((failedCallsByName[call.toolName] ?? 0) >= 3) {
+            shouldBreak = true;
+            break;
           }
         }
-        if (allRepeated) {
-          Log.w(_tag, 'All tool calls are repeated failures — breaking loop');
-          // Tell the model to just respond without tools
+        if (shouldBreak) {
+          Log.w(_tag, 'Tool call loop detected — breaking');
+          // Tell the model to respond without tools
           conversationMessages.add(ChatMessage(
             role: 'tool',
-            content: 'SYSTEM: All tool calls have failed repeatedly. '
-                'Please respond to the user directly without calling any more tools. '
+            content: 'SYSTEM: Tool calls have failed repeatedly. '
+                'Do NOT call any more tools. '
+                'Respond to the user directly. '
                 'Explain what you tried and what went wrong.',
           ));
-          // One final generation without tools
+          // One final generation without tools — stream these tokens
           final finalBuf = StringBuffer();
           await for (final token in _inferenceService.generateStream(
             messages: conversationMessages,
@@ -159,11 +166,13 @@ class AgentModeService {
           final result = await _toolRegistry.executeTool(call);
           yield AgentEvent.toolResult(result);
 
-          // Track failures
+          // Track failures by exact key and by tool name
           if (!result.success) {
-            final key = '${call.toolName}:${call.arguments.toString()}';
-            failedCalls[key] = (failedCalls[key] ?? 0) + 1;
+            final exactKey = '${call.toolName}:${call.arguments.toString()}';
+            failedCallsByKey[exactKey] = (failedCallsByKey[exactKey] ?? 0) + 1;
           }
+          failedCallsByName[call.toolName] =
+              (failedCallsByName[call.toolName] ?? 0) + 1;
 
           // Add tool result to conversation for next iteration
           final statusLabel = result.success ? 'SUCCESS' : 'FAILED';
@@ -176,8 +185,23 @@ class AgentModeService {
 
       if (_currentIteration >= AppConstants.maxAgentIterations) {
         Log.w(_tag, 'Agent reached max iterations');
-        // Provide the last response as final answer
-        yield AgentEvent.finalAnswer(lastFullResponse);
+        // Force a clean final generation without tools
+        conversationMessages.add(ChatMessage(
+          role: 'tool',
+          content: 'SYSTEM: Maximum iterations reached. '
+              'Respond to the user now with whatever information you have. '
+              'Do NOT call any more tools.',
+        ));
+        final finalBuf = StringBuffer();
+        await for (final token in _inferenceService.generateStream(
+          messages: conversationMessages,
+          agentMode: false,
+          systemPrompt: systemPrompt,
+        )) {
+          finalBuf.write(token);
+          yield AgentEvent.token(token);
+        }
+        yield AgentEvent.finalAnswer(finalBuf.toString());
         yield AgentEvent.maxIterationsReached();
       }
     } catch (e, st) {

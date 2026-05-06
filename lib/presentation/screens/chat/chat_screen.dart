@@ -636,8 +636,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String finalText = '';
     String? thinkingContent;
     final toolLog = StringBuffer();
-    // Track tool-use indicators shown to the user
-    final toolIndicators = StringBuffer();
+    // Track all tool activity for the expandable section
+    final toolActivity = <String>[];
+    bool isFinalStreaming = false;
 
     await for (final event in agentService.run(
       messages: chatMessages,
@@ -646,34 +647,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     )) {
       switch (event.type) {
         case AgentEventType.token:
-          // Filter out <think> blocks and tool_call code blocks from live display
+          // Tokens only arrive during the final answer generation now
+          isFinalStreaming = true;
           setState(() {
             _streamBuffer += event.text ?? '';
-            // Scrub completed think blocks
+            // Still scrub think blocks that leak into the final stream
             _streamBuffer = _streamBuffer.replaceAll(
                 RegExp(r'<think>[\s\S]*?</think>\s*'), '');
-            // Scrub incomplete opening <think> tag (still streaming)
             if (_streamBuffer.contains('<think>') &&
                 !_streamBuffer.contains('</think>')) {
               _streamBuffer =
                   _streamBuffer.substring(0, _streamBuffer.indexOf('<think>'));
-            }
-            // Scrub completed tool_call blocks
-            _streamBuffer = _streamBuffer.replaceAll(
-                RegExp(r'```tool_call[\s\S]*?```\s*'), '');
-            // Scrub incomplete tool_call block (still streaming)
-            if (_streamBuffer.contains('```tool_call') &&
-                !_streamBuffer.contains('```', _streamBuffer.indexOf('```tool_call') + 12)) {
-              _streamBuffer = _streamBuffer.substring(
-                  0, _streamBuffer.indexOf('```tool_call'));
-            }
-            // Scrub <tool_call>...</tool_call> XML style
-            _streamBuffer = _streamBuffer.replaceAll(
-                RegExp(r'<tool_call>[\s\S]*?</tool_call>\s*'), '');
-            if (_streamBuffer.contains('<tool_call>') &&
-                !_streamBuffer.contains('</tool_call>')) {
-              _streamBuffer = _streamBuffer.substring(
-                  0, _streamBuffer.indexOf('<tool_call>'));
             }
           });
           _scrollToBottom();
@@ -681,11 +665,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         case AgentEventType.thinking:
           debugPrint('[Agent] Iteration ${event.iteration}');
-          if (event.iteration != null && event.iteration! > 1) {
-            // New iteration: clear raw tool-call JSON, keep tool summary
+          if (!isFinalStreaming) {
+            // Show a thinking indicator while the model reasons silently
             setState(() {
-              _streamBuffer = toolIndicators.toString();
+              _streamBuffer = _buildToolActivityDisplay(toolActivity, isThinking: true);
             });
+            _scrollToBottom();
           }
           break;
 
@@ -696,11 +681,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         case AgentEventType.toolExecuting:
           final call = event.toolCall!;
           debugPrint('[Agent] Executing tool: ${call.toolName}');
-          // Replace raw stream (contains tool-call JSON) with clean indicator
-          final indicator = '🔧 *Using ${call.toolName}...*\n';
-          toolIndicators.write(indicator);
+          toolActivity.add('🔧 Using **${call.toolName}**...');
           setState(() {
-            _streamBuffer = toolIndicators.toString();
+            _streamBuffer = _buildToolActivityDisplay(toolActivity);
           });
           _scrollToBottom();
           break;
@@ -712,14 +695,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           toolLog.writeln('Success: ${result.success}');
           toolLog.writeln('Output: ${result.output.length > 200 ? '${result.output.substring(0, 200)}...' : result.output}');
           toolLog.writeln('---');
-          // Update indicator to show completion status
+          // Replace the "Using..." line with a result line
+          if (toolActivity.isNotEmpty) toolActivity.removeLast();
           final statusEmoji = result.success ? '✅' : '❌';
-          final doneIndicator = '$statusEmoji *${result.toolName}*'
-              '${result.success ? '' : ' — ${result.output.length > 80 ? '${result.output.substring(0, 80)}...' : result.output}'}\n';
-          toolIndicators.clear();
-          toolIndicators.write(doneIndicator);
+          final brief = result.output.length > 60
+              ? '${result.output.substring(0, 60)}...'
+              : result.output;
+          toolActivity.add('$statusEmoji **${result.toolName}** — $brief');
           setState(() {
-            _streamBuffer = toolIndicators.toString();
+            _streamBuffer = _buildToolActivityDisplay(toolActivity);
           });
           break;
 
@@ -729,11 +713,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         case AgentEventType.finalAnswer:
           finalText = event.text ?? '';
-          // Sync stream buffer so user sees the final answer while message saves
-          setState(() {
-            _streamBuffer = toolIndicators.toString() + _cleanForDisplay(finalText);
-          });
-          _scrollToBottom();
           break;
 
         case AgentEventType.maxIterationsReached:
@@ -751,23 +730,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     }
 
-    // Strip special tokens
-    for (final tok in _specialTokens) {
-      finalText = finalText.replaceAll(tok, '');
-    }
-    // Strip thinking blocks
-    finalText = finalText.replaceAll(RegExp(r'<think>[\s\S]*?</think>'), '');
-    // Strip tool-call blocks (```tool_call...``` and <tool_call>...</tool_call>)
-    finalText = finalText.replaceAll(RegExp(r'```tool_call[\s\S]*?```'), '');
-    finalText = finalText.replaceAll(RegExp(r'<tool_call>[\s\S]*?</tool_call>'), '');
-    // Strip bare JSON tool calls that might have leaked
-    finalText = finalText.replaceAll(
-        RegExp(r'\{"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\}'), '');
-    // Strip tool-use indicators from final saved text
-    finalText = finalText.replaceAll(RegExp(r'🔧 \*Using [^*]+\.\.\.\*\n?'), '');
-    finalText = finalText.replaceAll(RegExp(r'✅ \*[^*]+\* completed\n?'), '');
-    finalText = finalText.replaceAll(RegExp(r'❌ \*[^*]+\*[^\n]*\n?'), '');
-    finalText = finalText.trim();
+    // Clean final text for saving
+    finalText = _cleanForSave(finalText);
 
     // Save assistant message with tool info
     if (finalText.isEmpty && toolLog.isNotEmpty) {
@@ -820,9 +784,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
     buf.writeln();
 
-    // App context
+    // App & platform context
     buf.writeln('Current date: ${DateTime.now().toIso8601String().split('T')[0]}');
-    buf.writeln('Platform: ${_getPlatformName()}');
+    buf.writeln('Operating system: ${_getOSContext()}');
+    buf.writeln('IMPORTANT: When using file tools, ALWAYS use Windows-style paths (e.g., C:\\Users\\username\\...) with backslashes. Never use Unix paths like /home/.');
     buf.writeln();
 
     // RAG context from documents
@@ -865,23 +830,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return buf.toString();
   }
 
-  String _getPlatformName() {
-    // Simple platform detection
+  String _getOSContext() {
     try {
-      if (identical(0, 0.0)) return 'Web';
+      if (Platform.isWindows) {
+        final home = Platform.environment['USERPROFILE'] ?? r'C:\Users\User';
+        return 'Windows (home directory: $home, path separator: \\)';
+      } else if (Platform.isMacOS) {
+        final home = Platform.environment['HOME'] ?? '/Users/user';
+        return 'macOS (home directory: $home, path separator: /)';
+      } else if (Platform.isLinux) {
+        final home = Platform.environment['HOME'] ?? '/home/user';
+        return 'Linux (home directory: $home, path separator: /)';
+      }
     } catch (_) {}
     return 'Desktop';
   }
 
-  /// Strip artifacts from text for live display (not for saving)
-  String _cleanForDisplay(String text) {
+  /// Build a clean display string showing tool activity + optional thinking indicator
+  String _buildToolActivityDisplay(List<String> activity, {bool isThinking = false}) {
+    final buf = StringBuffer();
+    for (final line in activity) {
+      buf.writeln(line);
+    }
+    if (isThinking) {
+      buf.writeln('💭 *Thinking...*');
+    }
+    return buf.toString();
+  }
+
+  /// Strip artifacts from text for saving
+  String _cleanForSave(String text) {
     var cleaned = text;
     for (final tok in _specialTokens) {
       cleaned = cleaned.replaceAll(tok, '');
     }
-    cleaned = cleaned.replaceAll(RegExp(r'<think>[\s\S]*?</think>\s*'), '');
-    cleaned = cleaned.replaceAll(RegExp(r'```tool_call[\s\S]*?```\s*'), '');
-    cleaned = cleaned.replaceAll(RegExp(r'<tool_call>[\s\S]*?</tool_call>\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'<think>[\s\S]*?</think>'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'```tool_call[\s\S]*?```'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'<tool_call>[\s\S]*?</tool_call>'), '');
+    cleaned = cleaned.replaceAll(
+        RegExp(r'\{"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\}'), '');
     return cleaned.trim();
   }
 
