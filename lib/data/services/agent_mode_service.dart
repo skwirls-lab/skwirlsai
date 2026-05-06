@@ -85,6 +85,12 @@ class AgentModeService {
           break;
         }
 
+        // Add the assistant message once (contains tool call(s))
+        conversationMessages.add(ChatMessage(
+          role: 'assistant',
+          content: fullResponse,
+        ));
+
         // Execute tool calls
         for (final call in toolCalls) {
           // Check if confirmation is needed
@@ -102,7 +108,6 @@ class AgentModeService {
                   executionTime: Duration.zero,
                 ));
 
-                // Add decline to conversation
                 conversationMessages.add(ChatMessage(
                   role: 'tool',
                   content: 'Tool ${call.toolName} was declined by the user.',
@@ -119,10 +124,6 @@ class AgentModeService {
           yield AgentEvent.toolResult(result);
 
           // Add tool result to conversation for next iteration
-          conversationMessages.add(ChatMessage(
-            role: 'assistant',
-            content: fullResponse,
-          ));
           conversationMessages.add(ChatMessage(
             role: 'tool',
             content: '${call.toolName} result: ${result.output}',

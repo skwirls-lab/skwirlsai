@@ -148,10 +148,17 @@ class LocalInferenceProvider implements InferenceProvider {
     }
 
     for (final msg in messages) {
-      final role = msg.role == 'assistant' ? 'assistant' : msg.role;
-      buffer.writeln('<|im_start|>$role');
-      buffer.writeln(msg.content);
-      buffer.writeln('<|im_end|>');
+      // Map 'tool' role to 'user' with a label prefix so the model treats
+      // tool results as contextual information for the next generation.
+      if (msg.role == 'tool') {
+        buffer.writeln('<|im_start|>user');
+        buffer.writeln('[Tool Result] ${msg.content}');
+        buffer.writeln('<|im_end|>');
+      } else {
+        buffer.writeln('<|im_start|>${msg.role}');
+        buffer.writeln(msg.content);
+        buffer.writeln('<|im_end|>');
+      }
     }
 
     buffer.write('<|im_start|>assistant\n');
