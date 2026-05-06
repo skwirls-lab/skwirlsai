@@ -21,8 +21,6 @@ class ModelManagementScreen extends ConsumerStatefulWidget {
 
 class _ModelManagementScreenState
     extends ConsumerState<ModelManagementScreen> {
-  bool _isConnecting = false;
-  String? _connectError;
   String? _downloadingModelId;
   double _downloadProgress = 0;
 
@@ -92,32 +90,33 @@ class _ModelManagementScreenState
           ),
           const SizedBox(height: 12),
 
-          if (_connectError != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_connectError!,
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.error)),
-            ),
-
           // Add endpoint button
           OutlinedButton.icon(
-            onPressed: _isConnecting ? null : () => _showAddEndpointDialog(),
+            onPressed: () => _showAddEndpointDialog(),
             icon: const Icon(Icons.add_link_rounded),
             label: const Text('Add Remote Endpoint'),
           ),
           const SizedBox(height: 8),
 
-          // Quick-connect presets
+          // Quick-add presets
           _QuickConnectCard(
             icon: Icons.computer_rounded,
             title: 'Ollama (Local)',
             subtitle: 'http://localhost:11434',
-            onConnect: () => _connectRemote(
-              baseUrl: 'http://localhost:11434',
-              displayName: 'Ollama (Local)',
-            ),
-            isConnecting: _isConnecting,
+            onConnect: () {
+              // Save as endpoint; user connects from the chat dropdown
+              ref.read(savedEndpointsProvider.notifier).addEndpoint(
+                const SavedEndpoint(
+                  name: 'Ollama (Local)',
+                  baseUrl: 'http://localhost:11434',
+                ),
+              );
+              showTopSnackBar(context,
+                  'Ollama endpoint saved. Select it from the model dropdown in chat.',
+                  backgroundColor: AppColors.success);
+            },
+            isConnecting: false,
+            buttonLabel: 'Save',
           ),
           const SizedBox(height: 8),
 
@@ -158,7 +157,7 @@ class _ModelManagementScreenState
                 children: [
                   // Downloaded models
                   if (downloadedModels.isNotEmpty) ...[
-                    Text('Ready to Use',
+                    Text('Downloaded',
                         style: AppTextStyles.bodySmall
                             .copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
@@ -170,8 +169,6 @@ class _ModelManagementScreenState
                       return _LocalModelCard(
                         model: model,
                         isConnected: isConnected,
-                        isConnecting: _isConnecting,
-                        onConnect: () => _connectLocal(model),
                         onDelete: () => _deleteModel(model),
                       );
                     }),
@@ -320,14 +317,11 @@ class _ModelManagementScreenState
                   );
 
               Navigator.pop(ctx);
-              _connectRemote(
-                baseUrl: url,
-                modelName: model,
-                apiKey: key.isEmpty ? null : key,
-                displayName: displayName,
-              );
+              showTopSnackBar(context,
+                  'Endpoint saved. Select it from the model dropdown in chat.',
+                  backgroundColor: AppColors.success);
             },
-            child: const Text('Save & Connect'),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -359,138 +353,17 @@ class _ModelManagementScreenState
               style: AppTextStyles.labelSmall
                   .copyWith(color: AppColors.textTertiary),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.play_arrow_rounded,
-                      size: 20, color: AppColors.teal),
-                  tooltip: 'Connect',
-                  onPressed: _isConnecting
-                      ? null
-                      : () => _connectRemote(
-                            baseUrl: ep.baseUrl,
-                            modelName: ep.modelName,
-                            apiKey: ep.apiKey,
-                            displayName: ep.name,
-                          ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      size: 18, color: AppColors.textTertiary),
-                  tooltip: 'Remove',
-                  onPressed: () =>
-                      ref.read(savedEndpointsProvider.notifier).removeEndpoint(idx),
-                ),
-              ],
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline_rounded,
+                  size: 18, color: AppColors.textTertiary),
+              tooltip: 'Remove',
+              onPressed: () =>
+                  ref.read(savedEndpointsProvider.notifier).removeEndpoint(idx),
             ),
           ),
         );
       }),
     ];
-  }
-
-  Future<void> _connectRemote({
-    required String baseUrl,
-    String? modelName,
-    String? apiKey,
-    String? displayName,
-  }) async {
-    if (baseUrl.isEmpty) return;
-
-    setState(() {
-      _isConnecting = true;
-      _connectError = null;
-    });
-
-    try {
-      final inferenceService = ref.read(inferenceServiceProvider);
-
-      // If no model name specified and it's Ollama, we need to ask
-      String effectiveModel = modelName ?? '';
-      if (effectiveModel.isEmpty) {
-        // Show a dialog to pick model name for Ollama
-        if (mounted) {
-          effectiveModel = await _promptForModelName() ?? '';
-        }
-        if (effectiveModel.isEmpty) {
-          setState(() => _isConnecting = false);
-          return;
-        }
-      }
-
-      await inferenceService.connect(ModelConfig.remote(
-        baseUrl: baseUrl,
-        modelName: effectiveModel,
-        apiKey: apiKey,
-      ));
-      ref.read(isModelLoadedProvider.notifier).state = true;
-
-      if (mounted) {
-        showTopSnackBar(context, 'Connected to ${displayName ?? baseUrl}',
-            backgroundColor: AppColors.success);
-      }
-    } catch (e) {
-      setState(() => _connectError = 'Connection failed: $e');
-    } finally {
-      setState(() => _isConnecting = false);
-    }
-  }
-
-  Future<String?> _promptForModelName() async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Model Name'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Which model to use?',
-            hintText: 'e.g., gemma3:27b, llama3:latest',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _connectLocal(ModelInfo model) async {
-    if (model.filePath == null) return;
-
-    setState(() {
-      _isConnecting = true;
-      _connectError = null;
-    });
-
-    try {
-      final inferenceService = ref.read(inferenceServiceProvider);
-      final settings = ref.read(settingsProvider);
-      await inferenceService.connect(ModelConfig.local(
-        path: model.filePath!,
-        contextSize: settings.contextSize,
-      ));
-      ref.read(isModelLoadedProvider.notifier).state = true;
-
-      if (mounted) {
-        showTopSnackBar(context, 'Loaded ${model.displayName}',
-            backgroundColor: AppColors.success);
-      }
-    } catch (e) {
-      setState(() => _connectError = 'Failed to load: $e');
-    } finally {
-      setState(() => _isConnecting = false);
-    }
   }
 
   Future<void> _deleteModel(ModelInfo model) async {
@@ -541,7 +414,7 @@ class _ModelManagementScreenState
       ref.invalidate(availableModelsProvider);
 
       if (mounted) {
-        showTopSnackBar(context, 'Download complete! Tap Load to start using it.',
+        showTopSnackBar(context, 'Download complete! Select it from the model dropdown in chat.',
             backgroundColor: AppColors.success);
       }
     } catch (e) {
@@ -662,7 +535,7 @@ class _ConnectionStatusBanner extends StatelessWidget {
                     ),
                 ] else
                   Text(
-                    'Add a remote endpoint or load a local GGUF model',
+                    'Download local models or add remote endpoints below.\nUse the model selector in chat to load.',
                     style: AppTextStyles.bodySmall,
                   ),
               ],
@@ -685,6 +558,7 @@ class _QuickConnectCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onConnect;
   final bool isConnecting;
+  final String buttonLabel;
 
   const _QuickConnectCard({
     required this.icon,
@@ -692,6 +566,7 @@ class _QuickConnectCard extends StatelessWidget {
     required this.subtitle,
     required this.onConnect,
     required this.isConnecting,
+    this.buttonLabel = 'Connect',
   });
 
   @override
@@ -727,7 +602,7 @@ class _QuickConnectCard extends StatelessWidget {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Connect'),
+                : Text(buttonLabel),
           ),
         ],
       ),
@@ -738,15 +613,11 @@ class _QuickConnectCard extends StatelessWidget {
 class _LocalModelCard extends StatelessWidget {
   final ModelInfo model;
   final bool isConnected;
-  final bool isConnecting;
-  final VoidCallback onConnect;
   final VoidCallback onDelete;
 
   const _LocalModelCard({
     required this.model,
     required this.isConnected,
-    required this.isConnecting,
-    required this.onConnect,
     required this.onDelete,
   });
 
@@ -810,17 +681,6 @@ class _LocalModelCard extends StatelessWidget {
               ],
             ),
           ),
-          if (!isConnected)
-            ElevatedButton(
-              onPressed: isConnecting ? null : onConnect,
-              child: isConnecting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Load'),
-            ),
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded, size: 20),
             color: AppColors.textTertiary,

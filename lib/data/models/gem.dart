@@ -32,6 +32,10 @@ class Acorn {
   /// Comma-separated list of enabled SkwirlSkill names for this Acorn
   String enabledSkills = '';
 
+  /// Default model identifier for this Acorn (local model ID or saved endpoint name)
+  /// Empty string = use whatever is currently loaded
+  String defaultModelId = '';
+
   /// Per-Acorn generation settings overrides (null = use global defaults)
   double? temperature;
   double? topP;
@@ -55,6 +59,7 @@ class Acorn {
         'ragEnabled': ragEnabled,
         'agentModeDefault': agentModeDefault,
         'enabledSkills': enabledSkills,
+        'defaultModelId': defaultModelId,
         'temperature': temperature,
         'topP': topP,
         'topK': topK,
@@ -75,6 +80,7 @@ class Acorn {
       ..ragEnabled = json['ragEnabled'] as bool? ?? false
       ..agentModeDefault = json['agentModeDefault'] as bool? ?? false
       ..enabledSkills = json['enabledSkills'] as String? ?? ''
+      ..defaultModelId = json['defaultModelId'] as String? ?? ''
       ..temperature = (json['temperature'] as num?)?.toDouble()
       ..topP = (json['topP'] as num?)?.toDouble()
       ..topK = json['topK'] as int?

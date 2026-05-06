@@ -57,6 +57,7 @@ class AcornRepository {
     bool ragEnabled = false,
     bool agentModeDefault = false,
     String enabledSkills = '',
+    String defaultModelId = '',
     double? temperature,
     double? topP,
     int? topK,
@@ -74,6 +75,7 @@ class AcornRepository {
       ..ragEnabled = ragEnabled
       ..agentModeDefault = agentModeDefault
       ..enabledSkills = enabledSkills
+      ..defaultModelId = defaultModelId
       ..temperature = temperature
       ..topP = topP
       ..topK = topK

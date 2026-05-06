@@ -19,6 +19,7 @@ import '../../providers/model_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tool_provider.dart';
 import '../../widgets/message_bubble.dart';
+import '../../widgets/model_selector.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -77,7 +78,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final activeConv = ref.watch(activeConversationProvider);
     final activeAcorn = ref.watch(activeAcornProvider);
-    final isModelLoaded = ref.watch(isModelLoadedProvider);
+    // Still watch so UI rebuilds when model state changes
+    ref.watch(isModelLoadedProvider);
+
+    // Reset model selection when switching acorns so the new acorn's default applies
+    ref.listen<dynamic>(activeAcornProvider, (prev, next) {
+      if (prev?.uuid != next?.uuid) {
+        ref.read(selectedModelIdProvider.notifier).state = null;
+      }
+    });
 
     if (activeConv == null) {
       return Scaffold(
@@ -195,41 +204,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
             ),
           ),
-          // Model status
-          if (!isModelLoaded)
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 768),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceLight,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.link_off_rounded,
-                          size: 14, color: AppColors.textTertiary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'No model connected',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textTertiary),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '- Settings > Model',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textTertiary),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          // Model selector dropdown
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 768),
+              child: const ModelSelector(),
             ),
+          ),
           // Attached file chips
           if (_attachedFiles.isNotEmpty)
             Container(

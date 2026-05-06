@@ -12,6 +12,7 @@ import '../../../data/services/rag_service.dart';
 import '../../../domain/entities/tool.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/gem_provider.dart';
+import '../../providers/model_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tool_provider.dart';
 
@@ -37,6 +38,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
   late String _selectedColor;
   late bool _ragEnabled;
   late Set<String> _enabledSkills;
+  late String _defaultModelId;
   List<Document> _documents = [];
   bool _loadingDocs = false;
 
@@ -68,6 +70,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
         .split(',')
         .where((s) => s.trim().isNotEmpty)
         .toSet();
+    _defaultModelId = widget.existingAcorn?.defaultModelId ?? '';
     if (_isEditing) _loadDocuments();
   }
 
@@ -178,6 +181,9 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
               validator: Validators.systemPrompt,
             ),
             const SizedBox(height: 20),
+            // Default model picker
+            ..._buildDefaultModelPicker(),
+            const SizedBox(height: 12),
             // Toggles
             SwitchListTile(
               title: const Text('Enable RAG Documents'),
@@ -227,6 +233,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
       acorn.color = _selectedColor;
       acorn.ragEnabled = _ragEnabled;
       acorn.enabledSkills = _enabledSkills.join(',');
+      acorn.defaultModelId = _defaultModelId;
       await acornRepo.updateAcorn(acorn);
       // Refresh activeAcornProvider so chat picks up the changes
       ref.read(activeAcornProvider.notifier).state = acorn;
@@ -238,6 +245,7 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
         color: _selectedColor,
         ragEnabled: _ragEnabled,
         enabledSkills: _enabledSkills.join(','),
+        defaultModelId: _defaultModelId,
       );
     }
 
@@ -290,6 +298,54 @@ class _AcornEditorScreenState extends ConsumerState<AcornEditorScreen> {
     final docRepo = DocumentRepository(isar: isar);
     await docRepo.deleteDocument(doc.uuid);
     _loadDocuments();
+  }
+
+  List<Widget> _buildDefaultModelPicker() {
+    final selectable = ref.watch(selectableModelsProvider);
+
+    return [
+      Text('Default Model', style: AppTextStyles.label),
+      const SizedBox(height: 4),
+      Text('Choose which model this Acorn uses by default',
+          style: AppTextStyles.bodySmall
+              .copyWith(color: AppColors.textTertiary, fontSize: 12)),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _defaultModelId.isEmpty ? null : _defaultModelId,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+        hint: const Text('Use currently loaded model'),
+        isExpanded: true,
+        items: [
+          const DropdownMenuItem<String>(
+            value: '',
+            child: Text('No default (use current)'),
+          ),
+          ...selectable.map((m) => DropdownMenuItem<String>(
+                value: m.id,
+                child: Row(
+                  children: [
+                    Icon(
+                      m.isLocal
+                          ? Icons.memory_rounded
+                          : Icons.cloud_outlined,
+                      size: 16,
+                      color: AppColors.textTertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(m.displayName,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+        onChanged: (v) => setState(() => _defaultModelId = v ?? ''),
+      ),
+    ];
   }
 
   List<Widget> _buildSkwirlSkillsSection() {
