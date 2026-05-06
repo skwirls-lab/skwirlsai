@@ -50,15 +50,27 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
       }
     }
 
-    // Check if the effective model is actually loaded/connected
+    // Check if the *selected* model is the one that's actually loaded/connected
     if (isLoaded && inferenceService.isModelLoaded) {
-      isActiveReady = true;
-      // If nothing explicitly selected, show whatever is loaded
       if (effectiveId == null) {
+        // Nothing selected — show whatever is loaded and mark as ready
+        isActiveReady = true;
         activeLabel = inferenceService.activeModelName ?? 'Model loaded';
         activeIcon = inferenceService.activeSource == ModelSource.local
             ? Icons.memory_rounded
             : Icons.cloud_outlined;
+      } else {
+        // Something is selected — check if it matches the loaded model
+        final match = selectable.where((m) => m.id == effectiveId).firstOrNull;
+        if (match != null) {
+          if (match.isLocal &&
+              inferenceService.loadedModelPath == match.filePath) {
+            isActiveReady = true;
+          } else if (match.isRemote &&
+              inferenceService.activeEndpoint == match.baseUrl) {
+            isActiveReady = true;
+          }
+        }
       }
     }
 
