@@ -313,7 +313,7 @@ class ToolRegistry {
       Tool(
         name: 'write_file',
         description: 'Write text content to a file. Creates the file if it does not exist, overwrites if it does.',
-        category: ToolCategory.externalWrite,
+        category: ToolCategory.local,
         requiresConfirmation: true,
         parameters: {
           'path': const ToolParameter(

@@ -251,13 +251,13 @@ class SettingsScreen extends ConsumerWidget {
             ),
             title: Text(isModelLoaded
                 ? ref.read(inferenceServiceProvider).providerName
-                : 'No Model Connected'),
+                : 'Models'),
             subtitle: Text(
               isModelLoaded
                   ? (ref.read(inferenceServiceProvider).activeModelName ??
                       ref.read(inferenceServiceProvider).loadedModelPath ??
                       'Connected')
-                  : 'Tap to connect a model',
+                  : 'Manage local models and remote endpoints',
             ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () {

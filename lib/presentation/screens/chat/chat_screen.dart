@@ -388,7 +388,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final inferenceService = ref.read(inferenceServiceProvider);
     final modelLoaded = ref.read(isModelLoadedProvider);
     if (!modelLoaded || !inferenceService.isModelLoaded) {
-      _showSnackBar('No model connected. Go to Models to load one.');
+      _showSnackBar('No model loaded. Use the model selector above to load one.');
       return;
     }
 
@@ -646,8 +646,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     )) {
       switch (event.type) {
         case AgentEventType.token:
+          // Filter out <think> blocks and tool_call code blocks from live display
           setState(() {
             _streamBuffer += event.text ?? '';
+            // Scrub completed think blocks
+            _streamBuffer = _streamBuffer.replaceAll(
+                RegExp(r'<think>[\s\S]*?</think>\s*'), '');
+            // Scrub incomplete opening <think> tag (still streaming)
+            if (_streamBuffer.contains('<think>') &&
+                !_streamBuffer.contains('</think>')) {
+              _streamBuffer =
+                  _streamBuffer.substring(0, _streamBuffer.indexOf('<think>'));
+            }
+            // Scrub completed tool_call blocks
+            _streamBuffer = _streamBuffer.replaceAll(
+                RegExp(r'```tool_call[\s\S]*?```\s*'), '');
+            // Scrub incomplete tool_call block (still streaming)
+            if (_streamBuffer.contains('```tool_call') &&
+                !_streamBuffer.contains('```', _streamBuffer.indexOf('```tool_call') + 12)) {
+              _streamBuffer = _streamBuffer.substring(
+                  0, _streamBuffer.indexOf('```tool_call'));
+            }
+            // Scrub <tool_call>...</tool_call> XML style
+            _streamBuffer = _streamBuffer.replaceAll(
+                RegExp(r'<tool_call>[\s\S]*?</tool_call>\s*'), '');
+            if (_streamBuffer.contains('<tool_call>') &&
+                !_streamBuffer.contains('</tool_call>')) {
+              _streamBuffer = _streamBuffer.substring(
+                  0, _streamBuffer.indexOf('<tool_call>'));
+            }
           });
           _scrollToBottom();
           break;
@@ -655,8 +682,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         case AgentEventType.thinking:
           debugPrint('[Agent] Iteration ${event.iteration}');
           if (event.iteration != null && event.iteration! > 1) {
-            // New iteration = model is generating after tool results.
-            // Clear the raw tool-call JSON from display, keep indicators.
+            // New iteration: clear raw tool-call JSON, keep tool summary
             setState(() {
               _streamBuffer = toolIndicators.toString();
             });
@@ -686,8 +712,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           toolLog.writeln('Success: ${result.success}');
           toolLog.writeln('Output: ${result.output.length > 200 ? '${result.output.substring(0, 200)}...' : result.output}');
           toolLog.writeln('---');
-          // Update indicator to show completion
-          final doneIndicator = '✅ *${result.toolName}* completed\n';
+          // Update indicator to show completion status
+          final statusEmoji = result.success ? '✅' : '❌';
+          final doneIndicator = '$statusEmoji *${result.toolName}*'
+              '${result.success ? '' : ' — ${result.output.length > 80 ? '${result.output.substring(0, 80)}...' : result.output}'}\n';
           toolIndicators.clear();
           toolIndicators.write(doneIndicator);
           setState(() {
@@ -701,11 +729,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         case AgentEventType.finalAnswer:
           finalText = event.text ?? '';
+          // Sync stream buffer so user sees the final answer while message saves
+          setState(() {
+            _streamBuffer = toolIndicators.toString() + _cleanForDisplay(finalText);
+          });
+          _scrollToBottom();
           break;
 
         case AgentEventType.maxIterationsReached:
           _showSnackBar('Agent reached max iterations');
-          finalText = _streamBuffer;
           break;
 
         case AgentEventType.stopped:
@@ -725,14 +757,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
     // Strip thinking blocks
     finalText = finalText.replaceAll(RegExp(r'<think>[\s\S]*?</think>'), '');
-    // Strip tool-call blocks (```tool_call...```)
+    // Strip tool-call blocks (```tool_call...``` and <tool_call>...</tool_call>)
     finalText = finalText.replaceAll(RegExp(r'```tool_call[\s\S]*?```'), '');
+    finalText = finalText.replaceAll(RegExp(r'<tool_call>[\s\S]*?</tool_call>'), '');
+    // Strip bare JSON tool calls that might have leaked
+    finalText = finalText.replaceAll(
+        RegExp(r'\{"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\}'), '');
     // Strip tool-use indicators from final saved text
     finalText = finalText.replaceAll(RegExp(r'🔧 \*Using [^*]+\.\.\.\*\n?'), '');
     finalText = finalText.replaceAll(RegExp(r'✅ \*[^*]+\* completed\n?'), '');
+    finalText = finalText.replaceAll(RegExp(r'❌ \*[^*]+\*[^\n]*\n?'), '');
     finalText = finalText.trim();
 
     // Save assistant message with tool info
+    if (finalText.isEmpty && toolLog.isNotEmpty) {
+      // Tools were called but model didn't produce a final answer
+      finalText = 'I used tools but wasn\'t able to produce a clear answer. '
+          'Please try rephrasing your question.';
+    }
     if (finalText.isNotEmpty) {
       await convRepo.addMessage(
         conversationId: conversationId,
@@ -829,6 +871,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (identical(0, 0.0)) return 'Web';
     } catch (_) {}
     return 'Desktop';
+  }
+
+  /// Strip artifacts from text for live display (not for saving)
+  String _cleanForDisplay(String text) {
+    var cleaned = text;
+    for (final tok in _specialTokens) {
+      cleaned = cleaned.replaceAll(tok, '');
+    }
+    cleaned = cleaned.replaceAll(RegExp(r'<think>[\s\S]*?</think>\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'```tool_call[\s\S]*?```\s*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'<tool_call>[\s\S]*?</tool_call>\s*'), '');
+    return cleaned.trim();
   }
 
   Future<void> _autoTitleWithLLM(String conversationId, String userMessage) async {
