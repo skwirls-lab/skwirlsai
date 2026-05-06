@@ -11,6 +11,14 @@ import 'gmail_service.dart';
 class ToolRegistry {
   static const _tag = 'ToolRegistry';
 
+  // Directories to skip during recursive search (massive/irrelevant)
+  static const _skipDirs = {
+    'appdata', '.gradle', 'node_modules', '.git', '__pycache__',
+    '.cache', '.npm', '.nuget', '.vs', '.vscode', 'obj',
+    '.android', '.dart_tool', '.pub-cache',
+    '.local', '.config', 'programdata', 'intel',
+  };
+
   final RagService _ragService;
   final CalendarService _calendarService;
   final GmailService _gmailService;
@@ -401,6 +409,8 @@ class ToolRegistry {
         description: 'Recursively search for files and directories matching a name pattern '
             'within a directory tree. Uses case-insensitive substring matching. '
             'Returns matching file paths with their types and sizes. '
+            'Skips heavy system directories (AppData, node_modules, .git, etc.) '
+            'for performance. Returns partial results if the time budget runs out. '
             'Use this instead of manually listing directories one by one.',
         category: ToolCategory.local,
         parameters: {
@@ -431,19 +441,53 @@ class ToolRegistry {
             );
           }
           final matches = <String>[];
-          await for (final entity in dir.list(recursive: true, followLinks: false)) {
-            final name = entity.path.split(Platform.pathSeparator).last.toLowerCase();
-            if (name.contains(pattern)) {
-              final stat = entity.statSync();
-              final isDir = stat.type == FileSystemEntityType.directory;
-              final size = isDir ? '' : ' (${(stat.size / 1024).toStringAsFixed(1)} KB)';
-              matches.add('[${isDir ? "DIR" : "FILE"}] ${entity.path}$size');
+          final deadline = DateTime.now().add(const Duration(seconds: 20));
+          bool hitDeadline = false;
+          int scanned = 0;
+
+          Future<void> recurse(Directory d) async {
+            if (hitDeadline || matches.length >= 50) return;
+            try {
+              await for (final entity in d.list(followLinks: false)) {
+                if (hitDeadline || matches.length >= 50) return;
+                scanned++;
+                if (scanned % 500 == 0 && DateTime.now().isAfter(deadline)) {
+                  hitDeadline = true;
+                  return;
+                }
+                final name = entity.path.split(Platform.pathSeparator).last;
+                final nameLower = name.toLowerCase();
+                if (entity is Directory) {
+                  // Check if this directory name matches the pattern
+                  if (nameLower.contains(pattern)) {
+                    matches.add('[DIR] ${entity.path}');
+                  }
+                  // Skip heavy system directories entirely
+                  if (_skipDirs.contains(nameLower)) continue;
+                  await recurse(entity);
+                } else {
+                  if (nameLower.contains(pattern)) {
+                    try {
+                      final stat = entity.statSync();
+                      final size = ' (${(stat.size / 1024).toStringAsFixed(1)} KB)';
+                      matches.add('[FILE] ${entity.path}$size');
+                    } catch (_) {
+                      matches.add('[FILE] ${entity.path}');
+                    }
+                  }
+                }
+              }
+            } catch (_) {
+              // Permission denied or other access error — skip this directory
             }
-            if (matches.length >= 50) break; // cap results
           }
+
+          await recurse(dir);
+
+          final suffix = hitDeadline ? '\n(search stopped early — time budget reached after scanning $scanned items)' : '';
           final output = matches.isEmpty
-              ? 'No matches found for "$pattern" in $path'
-              : 'Found ${matches.length} match${matches.length == 1 ? '' : 'es'} in $path:\n${matches.join('\n')}';
+              ? 'No matches found for "$pattern" in $path$suffix'
+              : 'Found ${matches.length} match${matches.length == 1 ? '' : 'es'} in $path:\n${matches.join('\n')}$suffix';
           return ToolResult(
             toolName: 'search_files',
             success: true,
@@ -468,7 +512,8 @@ class ToolRegistry {
         description: 'Search for files containing specific text within a directory tree. '
             'Searches file contents recursively (case-insensitive). '
             'Returns matching file paths and a preview of the matching line. '
-            'Useful when you need to find a file by its contents rather than its name.',
+            'Useful when you need to find a file by its contents rather than its name. '
+            'Skips heavy system directories and returns partial results if time runs out.',
         category: ToolCategory.local,
         parameters: {
           'path': const ToolParameter(
@@ -486,6 +531,10 @@ class ToolRegistry {
       (args) async {
         final path = args['path'] as String;
         final query = (args['query'] as String).toLowerCase();
+        const textExts = {'txt', 'md', 'csv', 'json', 'xml', 'yaml', 'yml',
+            'html', 'htm', 'css', 'js', 'ts', 'dart', 'py', 'java', 'c',
+            'cpp', 'h', 'log', 'ini', 'cfg', 'toml', 'env', 'sh', 'bat',
+            'ps1', 'sql', 'rtf', 'tex', 'org', 'rst'};
         try {
           final dir = Directory(path);
           if (!await dir.exists()) {
@@ -497,44 +546,60 @@ class ToolRegistry {
             );
           }
           final matches = <String>[];
-          await for (final entity in dir.list(recursive: true, followLinks: false)) {
-            if (entity is! File) continue;
-            final ext = entity.path.split('.').last.toLowerCase();
-            // Only search text-like files
-            const textExts = {'txt', 'md', 'csv', 'json', 'xml', 'yaml', 'yml',
-                'html', 'htm', 'css', 'js', 'ts', 'dart', 'py', 'java', 'c',
-                'cpp', 'h', 'log', 'ini', 'cfg', 'toml', 'env', 'sh', 'bat',
-                'ps1', 'sql', 'rtf', 'tex', 'org', 'rst'};
-            if (!textExts.contains(ext)) continue;
-            // Skip large files (>1MB)
-            final stat = entity.statSync();
-            if (stat.size > 1024 * 1024) continue;
+          final deadline = DateTime.now().add(const Duration(seconds: 20));
+          bool hitDeadline = false;
+          int scanned = 0;
+
+          Future<void> recurse(Directory d) async {
+            if (hitDeadline || matches.length >= 20) return;
             try {
-              final content = await entity.readAsString();
-              final lowerContent = content.toLowerCase();
-              if (lowerContent.contains(query)) {
-                // Find the matching line for preview
-                final lines = content.split('\n');
-                String preview = '';
-                for (final line in lines) {
-                  if (line.toLowerCase().contains(query)) {
-                    preview = line.trim();
-                    if (preview.length > 100) {
-                      preview = '${preview.substring(0, 100)}...';
-                    }
-                    break;
-                  }
+              await for (final entity in d.list(followLinks: false)) {
+                if (hitDeadline || matches.length >= 20) return;
+                scanned++;
+                if (scanned % 200 == 0 && DateTime.now().isAfter(deadline)) {
+                  hitDeadline = true;
+                  return;
                 }
-                matches.add('[FILE] ${entity.path} (${(stat.size / 1024).toStringAsFixed(1)} KB)\n  → $preview');
+                final name = entity.path.split(Platform.pathSeparator).last;
+                final nameLower = name.toLowerCase();
+                if (entity is Directory) {
+                  if (_skipDirs.contains(nameLower)) continue;
+                  await recurse(entity);
+                } else if (entity is File) {
+                  final ext = name.split('.').last.toLowerCase();
+                  if (!textExts.contains(ext)) continue;
+                  try {
+                    final stat = entity.statSync();
+                    if (stat.size > 1024 * 1024) continue;
+                    final content = await entity.readAsString();
+                    if (content.toLowerCase().contains(query)) {
+                      final lines = content.split('\n');
+                      String preview = '';
+                      for (final line in lines) {
+                        if (line.toLowerCase().contains(query)) {
+                          preview = line.trim();
+                          if (preview.length > 100) {
+                            preview = '${preview.substring(0, 100)}...';
+                          }
+                          break;
+                        }
+                      }
+                      matches.add('[FILE] ${entity.path} (${(stat.size / 1024).toStringAsFixed(1)} KB)\n  → $preview');
+                    }
+                  } catch (_) {}
+                }
               }
             } catch (_) {
-              // Skip files that can't be read as text
+              // Permission denied or access error — skip
             }
-            if (matches.length >= 20) break; // cap results
           }
+
+          await recurse(dir);
+
+          final suffix = hitDeadline ? '\n(search stopped early — time budget reached after scanning $scanned items)' : '';
           final output = matches.isEmpty
-              ? 'No files containing "$query" found in $path'
-              : 'Found ${matches.length} file${matches.length == 1 ? '' : 's'} containing "$query" in $path:\n${matches.join('\n')}';
+              ? 'No files containing "$query" found in $path$suffix'
+              : 'Found ${matches.length} file${matches.length == 1 ? '' : 's'} containing "$query" in $path:\n${matches.join('\n')}$suffix';
           return ToolResult(
             toolName: 'search_content',
             success: true,

@@ -123,15 +123,21 @@ class InferenceService {
       toolBlock.writeln('Important rules:');
       toolBlock.writeln('- When you decide to use a tool, call it IMMEDIATELY. Do NOT describe your plan first. Just output the tool_call block.');
       toolBlock.writeln('- Output ONLY the tool call JSON, nothing else, when calling a tool. No preamble, no explanation before the call.');
-      toolBlock.writeln('- After the tool returns its result, you may call another tool or give your final answer.');
+      toolBlock.writeln('- After a tool returns its result, you MUST either call another tool or give your final answer. NEVER describe what you plan to do next — just do it.');
       toolBlock.writeln('- If you don\'t need a tool, just respond normally without any tool_call block.');
-      toolBlock.writeln('- NEVER say "I\'ll use..." or "Let me try..." and then stop. Either call the tool or give the answer.');
+      toolBlock.writeln('- NEVER say "I\'ll use..." or "Let me try..." or "Once I find..." and then stop. Either call the tool or give the answer.');
+      toolBlock.writeln('- When a tool result contains the information you need, ACT on it immediately — call the next tool or answer the user.');
+      toolBlock.writeln();
+      toolBlock.writeln('# Tool strategy for finding files');
+      toolBlock.writeln('- Use search_files to find files/folders by name pattern within a directory tree.');
+      toolBlock.writeln('- Use search_content to find files containing specific text (great when the user doesn\'t know the file name).');
+      toolBlock.writeln('- Use read_file to read a specific file once you have its exact path.');
+      toolBlock.writeln('- Use list_files to browse a single directory\'s contents.');
+      toolBlock.writeln('- Keep calling tools until you have enough information to fully answer the user. Do NOT stop after just locating a file — read its contents if the user needs the information inside it.');
       toolBlock.writeln();
       toolBlock.writeln('# Critical: Do NOT hallucinate');
       toolBlock.writeln('- NEVER guess or invent file names, directory names, or paths. Only reference files/folders you have ACTUALLY seen in tool results.');
-      toolBlock.writeln('- If you need to find a file, use list_files to browse directories step by step. Do NOT assume file names based on the user\'s description.');
       toolBlock.writeln('- On Windows, user folders like Documents, Desktop, Downloads are inside the home directory (e.g., C:\\Users\\username\\Documents).');
-      toolBlock.writeln('- When looking for something in a named folder (e.g., "SKWIRLS_DOCS"), first find it by listing the parent directory, then list inside it.');
       fullSystemPrompt = toolBlock.toString();
     }
 

@@ -15,7 +15,7 @@ class AppConstants {
 
   // Agent mode limits
   static const int maxAgentIterations = 15;
-  static const Duration agentToolTimeout = Duration(seconds: 30);
+  static const Duration agentToolTimeout = Duration(seconds: 45);
   static const Duration agentGenerationTimeout = Duration(seconds: 120);
 
   // Sync settings
