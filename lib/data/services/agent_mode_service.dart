@@ -103,15 +103,38 @@ class AgentModeService {
           break;
         }
 
-        // Add the assistant message (contains tool call(s))
+        // Deduplicate tool calls (same name + same args)
+        final seen = <String>{};
+        final uniqueCalls = <ToolCall>[];
+        for (final call in toolCalls) {
+          final key = '${call.toolName}:${call.arguments.toString()}';
+          if (seen.add(key)) uniqueCalls.add(call);
+        }
+
+        // Strip narrative from the assistant message — only keep tool call
+        // blocks. This prevents the model from seeing its own "plan" text
+        // and repeating it instead of acting on tool results.
+        var cleanedAssistant = fullResponse;
+        // Keep think blocks but strip everything else around tool calls
+        cleanedAssistant = cleanedAssistant.replaceAll(
+            RegExp(r'(?<=```\s*)[\s\S]*?(?=```tool_call)', multiLine: true), '');
+        // Simple approach: just keep the tool call blocks
+        final toolCallBlocks = RegExp(r'```tool_call[\s\S]*?```|<tool_call>[\s\S]*?</tool_call>')
+            .allMatches(fullResponse)
+            .map((m) => m.group(0))
+            .join('\n');
+        if (toolCallBlocks.isNotEmpty) {
+          cleanedAssistant = toolCallBlocks;
+        }
+
         conversationMessages.add(ChatMessage(
           role: 'assistant',
-          content: fullResponse,
+          content: cleanedAssistant,
         ));
 
-        // Execute tool calls
+        // Execute tool calls (deduplicated)
         bool allFailed = true;
-        for (final call in toolCalls) {
+        for (final call in uniqueCalls) {
           // Check if confirmation is needed
           if (_toolRegistry.requiresConfirmation(call.toolName)) {
             yield AgentEvent.confirmationRequired(call);
