@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
@@ -55,6 +56,8 @@ class AgentModeService {
     final toolCallCache = <String, String>{};
     // Count how many times each tool call key was attempted
     final toolCallCounts = <String, int>{};
+    // Discovered paths from search_files results (leaf name → full path)
+    final discoveredPaths = <String, String>{};
 
     final toolSchemas = allowedToolNames != null
         ? _toolRegistry.getFilteredToolSchemas(allowedToolNames)
@@ -211,6 +214,23 @@ class AgentModeService {
             }
           }
 
+          // ── Path auto-correction ─────────────────────────
+          // If the tool has a 'path' argument, check if it exists.
+          // If not, try to find a discovered path with the same
+          // leaf name and substitute it.
+          if (call.arguments.containsKey('path')) {
+            final originalPath = call.arguments['path'] as String;
+            if (!await Directory(originalPath).exists() &&
+                !await File(originalPath).exists()) {
+              final leaf = originalPath.split(RegExp(r'[\\/]')).last.toLowerCase();
+              final corrected = discoveredPaths[leaf];
+              if (corrected != null && corrected != originalPath) {
+                _log('PATH AUTO-CORRECT: "$originalPath" → "$corrected"');
+                call.arguments['path'] = corrected;
+              }
+            }
+          }
+
           // Execute the tool
           yield AgentEvent.toolExecuting(call);
           final result = await _toolRegistry.executeTool(call);
@@ -218,7 +238,25 @@ class AgentModeService {
           anyExecuted = true;
 
           // Cache the result for cross-iteration dedup
+          // Use the ORIGINAL callKey (before path correction) for dedup
           toolCallCache[callKey] = result.output;
+
+          // ── Extract discovered paths from search_files results ──
+          if (call.toolName == 'search_files' && result.success) {
+            final dirPattern = RegExp(r'\[DIR\]\s+(.+)');
+            final filePattern = RegExp(r'\[FILE\]\s+(.+)');
+            for (final m in dirPattern.allMatches(result.output)) {
+              final fullPath = m.group(1)!.trim();
+              final leafName = fullPath.split(RegExp(r'[\\\/]')).last.toLowerCase();
+              discoveredPaths[leafName] = fullPath;
+              _log('Discovered dir: $leafName → $fullPath');
+            }
+            for (final m in filePattern.allMatches(result.output)) {
+              final fullPath = m.group(1)!.trim();
+              final leafName = fullPath.split(RegExp(r'[\\\/]')).last.toLowerCase();
+              discoveredPaths[leafName] = fullPath;
+            }
+          }
 
           final statusLabel = result.success ? 'SUCCESS' : 'FAILED';
           conversationMessages.add(ChatMessage(
