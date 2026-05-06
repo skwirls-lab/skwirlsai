@@ -135,25 +135,9 @@ class AgentModeService {
         }
         if (shouldBreak) {
           Log.w(_tag, 'Tool call loop detected — breaking');
-          // Tell the model to respond without tools
-          conversationMessages.add(ChatMessage(
-            role: 'tool',
-            content: 'SYSTEM: Tool calls have failed repeatedly. '
-                'Do NOT call any more tools. '
-                'Respond to the user directly. '
-                'Explain what you tried and what went wrong.',
-          ));
-          // One final generation without tools — stream these tokens
-          final finalBuf = StringBuffer();
-          await for (final token in _inferenceService.generateStream(
-            messages: conversationMessages,
-            agentMode: false,
-            systemPrompt: systemPrompt,
-          )) {
-            finalBuf.write(token);
-            yield AgentEvent.token(token);
-          }
-          yield AgentEvent.finalAnswer(finalBuf.toString());
+          // Don't attempt another generation (can hang).
+          // Emit what we have — the UI will show the fallback message.
+          yield AgentEvent.finalAnswer(lastFullResponse);
           break;
         }
 
@@ -214,23 +198,9 @@ class AgentModeService {
 
       if (_currentIteration >= AppConstants.maxAgentIterations) {
         Log.w(_tag, 'Agent reached max iterations');
-        // Force a clean final generation without tools
-        conversationMessages.add(ChatMessage(
-          role: 'tool',
-          content: 'SYSTEM: Maximum iterations reached. '
-              'Respond to the user now with whatever information you have. '
-              'Do NOT call any more tools.',
-        ));
-        final finalBuf = StringBuffer();
-        await for (final token in _inferenceService.generateStream(
-          messages: conversationMessages,
-          agentMode: false,
-          systemPrompt: systemPrompt,
-        )) {
-          finalBuf.write(token);
-          yield AgentEvent.token(token);
-        }
-        yield AgentEvent.finalAnswer(finalBuf.toString());
+        // Don't attempt another generation (can hang on large context).
+        // Use the last response as the final answer — the UI will clean it.
+        yield AgentEvent.finalAnswer(lastFullResponse);
         yield AgentEvent.maxIterationsReached();
       }
     } catch (e, st) {

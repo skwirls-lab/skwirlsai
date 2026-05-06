@@ -126,6 +126,12 @@ class InferenceService {
       toolBlock.writeln('- After the tool returns its result, you may call another tool or give your final answer.');
       toolBlock.writeln('- If you don\'t need a tool, just respond normally without any tool_call block.');
       toolBlock.writeln('- NEVER say "I\'ll use..." or "Let me try..." and then stop. Either call the tool or give the answer.');
+      toolBlock.writeln();
+      toolBlock.writeln('# Critical: Do NOT hallucinate');
+      toolBlock.writeln('- NEVER guess or invent file names, directory names, or paths. Only reference files/folders you have ACTUALLY seen in tool results.');
+      toolBlock.writeln('- If you need to find a file, use list_files to browse directories step by step. Do NOT assume file names based on the user\'s description.');
+      toolBlock.writeln('- On Windows, user folders like Documents, Desktop, Downloads are inside the home directory (e.g., C:\\Users\\username\\Documents).');
+      toolBlock.writeln('- When looking for something in a named folder (e.g., "SKWIRLS_DOCS"), first find it by listing the parent directory, then list inside it.');
       fullSystemPrompt = toolBlock.toString();
     }
 

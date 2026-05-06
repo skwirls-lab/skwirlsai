@@ -260,7 +260,10 @@ class ToolRegistry {
     _register(
       Tool(
         name: 'list_files',
-        description: 'List files and directories at a given path. Returns names, types, and sizes.',
+        description: 'List files and directories at a given path. '
+            'Returns names, types, and sizes. '
+            'Non-hidden directories are listed first, then non-hidden files, '
+            'then hidden items. The searched path is included in the output.',
         category: ToolCategory.local,
         parameters: {
           'path': const ToolParameter(
@@ -282,19 +285,58 @@ class ToolRegistry {
               executionTime: Duration.zero,
             );
           }
-          final entries = await dir.list().take(100).toList();
-          final lines = entries.map((e) {
+          final entries = await dir.list().toList();
+
+          // Categorize entries
+          final visibleDirs = <String>[];
+          final visibleFiles = <String>[];
+          final hiddenDirs = <String>[];
+          final hiddenFiles = <String>[];
+
+          for (final e in entries) {
+            final name = e.path.split(Platform.pathSeparator).last;
             final stat = e.statSync();
-            final type = stat.type == FileSystemEntityType.directory ? 'DIR' : 'FILE';
-            final size = stat.type == FileSystemEntityType.file
-                ? ' (${(stat.size / 1024).toStringAsFixed(1)} KB)'
-                : '';
-            return '[$type] ${e.path.split(Platform.pathSeparator).last}$size';
-          }).toList();
+            final isDir = stat.type == FileSystemEntityType.directory;
+            final isHidden = name.startsWith('.');
+            final size = isDir ? '' : ' (${(stat.size / 1024).toStringAsFixed(1)} KB)';
+            final line = '[${isDir ? "DIR" : "FILE"}] $name$size';
+
+            if (isHidden) {
+              (isDir ? hiddenDirs : hiddenFiles).add(line);
+            } else {
+              (isDir ? visibleDirs : visibleFiles).add(line);
+            }
+          }
+
+          // Sort each group alphabetically
+          visibleDirs.sort();
+          visibleFiles.sort();
+          hiddenDirs.sort();
+          hiddenFiles.sort();
+
+          // Combine: visible dirs first, then visible files, then hidden
+          final lines = <String>[
+            ...visibleDirs,
+            ...visibleFiles,
+            if (hiddenDirs.isNotEmpty || hiddenFiles.isNotEmpty) ...[
+              '--- hidden ---',
+              ...hiddenDirs,
+              ...hiddenFiles,
+            ],
+          ];
+
+          // Cap total output
+          final cappedLines = lines.take(150).toList();
+          if (lines.length > 150) {
+            cappedLines.add('... and ${lines.length - 150} more items');
+          }
+
+          final output = 'Listing: $path\n'
+              '${cappedLines.isEmpty ? 'Directory is empty.' : cappedLines.join('\n')}';
           return ToolResult(
             toolName: 'list_files',
             success: true,
-            output: lines.isEmpty ? 'Directory is empty.' : lines.join('\n'),
+            output: output,
             executionTime: Duration.zero,
           );
         } catch (e) {
