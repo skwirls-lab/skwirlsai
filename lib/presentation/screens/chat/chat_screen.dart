@@ -636,6 +636,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     String finalText = '';
     String? thinkingContent;
     final toolLog = StringBuffer();
+    // Track tool-use indicators shown to the user
+    final toolIndicators = StringBuffer();
 
     await for (final event in agentService.run(
       messages: chatMessages,
@@ -652,6 +654,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         case AgentEventType.thinking:
           debugPrint('[Agent] Iteration ${event.iteration}');
+          if (event.iteration != null && event.iteration! > 1) {
+            // New iteration = model is generating after tool results.
+            // Clear the raw tool-call JSON from display, keep indicators.
+            setState(() {
+              _streamBuffer = toolIndicators.toString();
+            });
+          }
           break;
 
         case AgentEventType.thinkingContent:
@@ -661,9 +670,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         case AgentEventType.toolExecuting:
           final call = event.toolCall!;
           debugPrint('[Agent] Executing tool: ${call.toolName}');
-          // Show tool execution in the stream
+          // Replace raw stream (contains tool-call JSON) with clean indicator
+          final indicator = '🔧 *Using ${call.toolName}...*\n';
+          toolIndicators.write(indicator);
           setState(() {
-            _streamBuffer += '\n🔧 *Using ${call.toolName}...*\n';
+            _streamBuffer = toolIndicators.toString();
           });
           _scrollToBottom();
           break;
@@ -675,6 +686,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           toolLog.writeln('Success: ${result.success}');
           toolLog.writeln('Output: ${result.output.length > 200 ? '${result.output.substring(0, 200)}...' : result.output}');
           toolLog.writeln('---');
+          // Update indicator to show completion
+          final doneIndicator = '✅ *${result.toolName}* completed\n';
+          toolIndicators.clear();
+          toolIndicators.write(doneIndicator);
+          setState(() {
+            _streamBuffer = toolIndicators.toString();
+          });
           break;
 
         case AgentEventType.confirmationRequired:
@@ -705,8 +723,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     for (final tok in _specialTokens) {
       finalText = finalText.replaceAll(tok, '');
     }
+    // Strip thinking blocks
+    finalText = finalText.replaceAll(RegExp(r'<think>[\s\S]*?</think>'), '');
+    // Strip tool-call blocks (```tool_call...```)
+    finalText = finalText.replaceAll(RegExp(r'```tool_call[\s\S]*?```'), '');
     // Strip tool-use indicators from final saved text
     finalText = finalText.replaceAll(RegExp(r'🔧 \*Using [^*]+\.\.\.\*\n?'), '');
+    finalText = finalText.replaceAll(RegExp(r'✅ \*[^*]+\* completed\n?'), '');
     finalText = finalText.trim();
 
     // Save assistant message with tool info
