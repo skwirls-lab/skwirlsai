@@ -786,8 +786,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     // App & platform context
     buf.writeln('Current date: ${DateTime.now().toIso8601String().split('T')[0]}');
-    buf.writeln('Operating system: ${_getOSContext()}');
-    buf.writeln('IMPORTANT: When using file tools, ALWAYS use Windows-style paths (e.g., C:\\Users\\username\\...) with backslashes. Never use Unix paths like /home/.');
+    final osContext = _getOSContext();
+    buf.writeln('Operating system: $osContext');
+    if (Platform.isWindows) {
+      buf.writeln('IMPORTANT: When using file tools, ALWAYS use Windows-style paths (e.g., C:\\Users\\username\\...) with backslashes. Never use Unix paths like /home/.');
+    } else {
+      buf.writeln('IMPORTANT: When using file tools, use forward-slash paths appropriate for this OS.');
+    }
     buf.writeln();
 
     // RAG context from documents

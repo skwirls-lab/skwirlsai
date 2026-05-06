@@ -86,7 +86,34 @@ class AgentModeService {
         final toolCalls = _toolRegistry.parseToolCalls(fullResponse);
 
         if (toolCalls.isEmpty) {
-          // No tool calls = final answer. Stream the clean answer to the UI.
+          // Strip thinking blocks to get the actual content
+          final contentOnly = fullResponse
+              .replaceAll(RegExp(r'<think>[\s\S]*?</think>\s*'), '')
+              .trim();
+
+          // If tools were used previously and this "answer" is suspiciously
+          // short (model likely stopped before emitting another tool call),
+          // nudge it to continue rather than treating this as a final answer.
+          final toolsWereUsed = conversationMessages.any((m) => m.role == 'tool');
+          if (toolsWereUsed &&
+              contentOnly.length < 120 &&
+              _currentIteration < AppConstants.maxAgentIterations) {
+            Log.i(_tag, 'Short response after tool use — nudging continuation');
+            conversationMessages.add(ChatMessage(
+              role: 'assistant',
+              content: fullResponse,
+            ));
+            conversationMessages.add(ChatMessage(
+              role: 'tool',
+              content: 'SYSTEM: You started to respond but did not finish. '
+                  'You have tool results available. Use them to give a complete '
+                  'answer, or call another tool if needed. Do NOT just describe '
+                  'what you plan to do.',
+            ));
+            continue; // retry this iteration
+          }
+
+          // No tool calls = final answer
           yield AgentEvent.finalAnswer(fullResponse);
           break;
         }

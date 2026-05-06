@@ -121,9 +121,11 @@ class InferenceService {
       toolBlock.writeln('```');
       toolBlock.writeln();
       toolBlock.writeln('Important rules:');
-      toolBlock.writeln('- Output ONLY the tool call JSON, nothing else, when calling a tool.');
-      toolBlock.writeln('- After the tool returns its result, continue your response using that information.');
+      toolBlock.writeln('- When you decide to use a tool, call it IMMEDIATELY. Do NOT describe your plan first. Just output the tool_call block.');
+      toolBlock.writeln('- Output ONLY the tool call JSON, nothing else, when calling a tool. No preamble, no explanation before the call.');
+      toolBlock.writeln('- After the tool returns its result, you may call another tool or give your final answer.');
       toolBlock.writeln('- If you don\'t need a tool, just respond normally without any tool_call block.');
+      toolBlock.writeln('- NEVER say "I\'ll use..." or "Let me try..." and then stop. Either call the tool or give the answer.');
       fullSystemPrompt = toolBlock.toString();
     }
 
