@@ -137,6 +137,7 @@ class InferenceService {
       toolBlock.writeln();
       toolBlock.writeln('# Critical: Do NOT hallucinate');
       toolBlock.writeln('- NEVER guess or invent file names, directory names, or paths. Only reference files/folders you have ACTUALLY seen in tool results.');
+      toolBlock.writeln('- When a tool result gives you a path like "[DIR] C:\\Users\\name\\Documents\\MyFolder", you MUST use that EXACT path (C:\\Users\\name\\Documents\\MyFolder) in your next tool call. Do NOT drop, shorten, or rearrange any part of the path.');
       toolBlock.writeln('- On Windows, user folders like Documents, Desktop, Downloads are inside the home directory (e.g., C:\\Users\\username\\Documents).');
       fullSystemPrompt = toolBlock.toString();
     }

@@ -485,9 +485,12 @@ class ToolRegistry {
           await recurse(dir);
 
           final suffix = hitDeadline ? '\n(search stopped early — time budget reached after scanning $scanned items)' : '';
+          final pathReminder = matches.isNotEmpty
+              ? '\nIMPORTANT: Use the EXACT full paths shown above when calling other tools. Do NOT shorten or modify them.'
+              : '';
           final output = matches.isEmpty
               ? 'No matches found for "$pattern" in $path$suffix'
-              : 'Found ${matches.length} match${matches.length == 1 ? '' : 'es'} in $path:\n${matches.join('\n')}$suffix';
+              : 'Found ${matches.length} match${matches.length == 1 ? '' : 'es'} in $path:\n${matches.join('\n')}$suffix$pathReminder';
           return ToolResult(
             toolName: 'search_files',
             success: true,
