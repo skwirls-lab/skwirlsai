@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkwirlsAI — Private, Local AI Assistant</title>
+  <meta name="description" content="Run powerful AI models 100% locally on your device. No cloud. No subscriptions. Your data stays yours.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --teal: #0097A7;
+      --teal-light: #00BCD4;
+      --teal-dark: #00838F;
+      --bg: #0A0E14;
+      --bg-card: #111822;
+      --bg-card-hover: #182030;
+      --text: #E8ECEF;
+      --text-muted: #8A95A5;
+      --border: #1E2A3A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 14, 20, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .logo {
+      font-size: 1.25rem; font-weight: 800; color: var(--teal-light);
+      text-decoration: none; letter-spacing: -0.02em;
+    }
+    .logo span { color: var(--text); }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none; font-size: 0.9rem;
+      font-weight: 500; transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 8rem 2rem 4rem;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,151,167,0.15), transparent);
+    }
+    .hero-content { max-width: 720px; }
+    .badge {
+      display: inline-block; padding: 0.35rem 1rem; border-radius: 100px;
+      background: rgba(0,151,167,0.12); border: 1px solid rgba(0,151,167,0.25);
+      color: var(--teal-light); font-size: 0.8rem; font-weight: 600;
+      margin-bottom: 1.5rem; letter-spacing: 0.03em;
+    }
+    h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 1.25rem;
+    }
+    h1 .accent { color: var(--teal-light); }
+    .hero p {
+      font-size: 1.15rem; color: var(--text-muted); max-width: 540px;
+      margin: 0 auto 2.5rem;
+    }
+    .cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.85rem 1.75rem; border-radius: 12px; font-size: 0.95rem;
+      font-weight: 600; text-decoration: none; transition: all 0.2s;
+      border: none; cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--teal); color: #fff;
+      box-shadow: 0 4px 24px rgba(0,151,167,0.3);
+    }
+    .btn-primary:hover {
+      background: var(--teal-light);
+      box-shadow: 0 6px 32px rgba(0,151,167,0.4);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--bg-card); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--teal);
+    }
+    .btn svg { width: 20px; height: 20px; }
+
+    /* FEATURES */
+    .features {
+      padding: 6rem 2rem; max-width: 1200px; margin: 0 auto;
+    }
+    .section-label {
+      text-align: center; color: var(--teal-light); font-size: 0.85rem;
+      font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      text-align: center; font-size: clamp(1.75rem, 3vw, 2.5rem);
+      font-weight: 700; letter-spacing: -0.02em; margin-bottom: 3.5rem;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem; transition: all 0.25s;
+    }
+    .feature-card:hover {
+      border-color: rgba(0,151,167,0.4);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(0,151,167,0.12); display: flex;
+      align-items: center; justify-content: center;
+      margin-bottom: 1.25rem; font-size: 1.5rem;
+    }
+    .feature-card h3 {
+      font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;
+    }
+    .feature-card p {
+      color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;
+    }
+
+    /* DOWNLOAD */
+    .download {
+      padding: 6rem 2rem; max-width: 900px; margin: 0 auto;
+    }
+    .download-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem; margin-top: 3rem;
+    }
+    .download-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem; text-align: center;
+      transition: all 0.25s;
+    }
+    .download-card:hover {
+      border-color: rgba(0,151,167,0.4);
+      background: var(--bg-card-hover);
+    }
+    .platform-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .download-card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.35rem; }
+    .download-card .version { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
+    .download-card .btn { width: 100%; justify-content: center; }
+    .download-card .size { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.75rem; }
+
+    /* USE CASES */
+    .use-cases {
+      padding: 6rem 2rem; max-width: 1200px; margin: 0 auto;
+    }
+    .use-cases-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    .use-case {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem;
+    }
+    .use-case h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .use-case p { color: var(--text-muted); font-size: 0.88rem; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border); padding: 2.5rem 2rem;
+      text-align: center; color: var(--text-muted); font-size: 0.85rem;
+    }
+    footer a { color: var(--teal-light); text-decoration: none; }
+
+    /* MOBILE */
+    @media (max-width: 640px) {
+      .nav-links { gap: 1rem; }
+      .cta-group { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 300px; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo">Skwirls<span>AI</span></a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/skwirls-lab/skwirlsai" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="badge">100% Local AI — No Cloud Required</div>
+      <h1>Your AI assistant that <span class="accent">never leaves your device</span></h1>
+      <p>Run powerful language models locally on Windows and Android. No subscriptions, no data collection, no internet required. Your conversations stay yours.</p>
+      <div class="cta-group">
+        <a href="#download" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Now
+        </a>
+        <a href="#features" class="btn btn-secondary">Learn More</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="section-label">Why SkwirlsAI</div>
+    <h2 class="section-title">Private AI, built for real work</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">&#128274;</div>
+        <h3>Completely Private</h3>
+        <p>Models run on your hardware. No data sent to the cloud. Works fully offline and air-gapped.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9889;</div>
+        <h3>Powerful Local Models</h3>
+        <p>Built on Gemma 4 via llama.cpp. Download and run models from 3GB to 16GB depending on your hardware.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128209;</div>
+        <h3>Persistent Memory</h3>
+        <p>SkwirlsAI remembers context across conversations. Perfect for long-running projects like novel writing.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128260;</div>
+        <h3>Google Sync</h3>
+        <p>Sign in with Google to sync your conversations and memory across Windows and Android devices via Google Drive.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#129430;</div>
+        <h3>SkwirlSkills</h3>
+        <p>Extensible skill system lets the AI read files, search your documents, and perform real tasks autonomously.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#127344;</div>
+        <h3>Custom Acorns</h3>
+        <p>Create specialized AI personas with custom system prompts, knowledge bases, and enabled skills for different workflows.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section class="use-cases">
+    <div class="section-label">Built For</div>
+    <h2 class="section-title">From fiction writing to research</h2>
+    <div class="use-cases-grid">
+      <div class="use-case">
+        <h3>Fiction Writers</h3>
+        <p>Persistent memory keeps track of characters, plot threads, and world-building across sessions.</p>
+      </div>
+      <div class="use-case">
+        <h3>Researchers</h3>
+        <p>Attach PDFs and documents. Ask questions about your research corpus without uploading to third parties.</p>
+      </div>
+      <div class="use-case">
+        <h3>Developers</h3>
+        <p>Local code assistance with file reading skills. No code leaves your machine.</p>
+      </div>
+      <div class="use-case">
+        <h3>Privacy-Conscious Users</h3>
+        <p>Air-gapped operation for sensitive work. No telemetry, no tracking, no accounts required.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section class="download" id="download">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">Download SkwirlsAI</h2>
+    <div class="download-cards">
+      <div class="download-card">
+        <div class="platform-icon">&#128187;</div>
+        <h3>Windows</h3>
+        <div class="version">v1.0.0 &middot; Windows 10+</div>
+        <a href="https://github.com/skwirls-lab/skwirlsai/releases/download/v1.0.0/SkwirlsAI-1.0.0-windows.zip" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download ZIP
+        </a>
+        <div class="size">15.4 MB &middot; Portable (extract &amp; run)</div>
+      </div>
+      <div class="download-card">
+        <div class="platform-icon">&#128241;</div>
+        <h3>Android</h3>
+        <div class="version">v1.0.0 &middot; Android 6.0+</div>
+        <a href="https://github.com/skwirls-lab/skwirlsai/releases/download/v1.0.0/SkwirlsAI-1.0.0-arm64.apk" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download APK
+        </a>
+        <div class="size">22.6 MB &middot; ARM64 (most phones)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>&copy; 2026 <a href="https://github.com/skwirls-lab">Skwirls Lab</a>. All rights reserved. SkwirlsAI is open source.</p>
+  </footer>
+
+</body>
+</html>
