@@ -19,7 +19,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Fix for older plugins missing the required 'namespace' property (AGP 8+)
+// Fix for older plugins: inject namespace + force compileSdk >= 34
 subprojects {
     plugins.withId("com.android.library") {
         val android = extensions.findByName("android") as? com.android.build.gradle.LibraryExtension
