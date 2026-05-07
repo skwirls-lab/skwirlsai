@@ -47,7 +47,7 @@ dependencies:
   package_info_plus: ^8.0.2
 
   # Background Tasks
-  workmanager: ^0.5.2
+  workmanager: ^0.6.0
 
   # UI
   flutter_svg: ^2.0.10+1
